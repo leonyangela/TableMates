@@ -14,4 +14,5 @@ If you are developing a production application, we recommend using TypeScript wi
 Photo by <a href="https://unsplash.com/@nickkarvounis?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Nick Karvounis</a> on <a href="https://unsplash.com/photos/rectangular-beige-wooden-tables-and-chair-Ciqxn7FE4vE?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
 
 Photo by <a href="https://unsplash.com/@edwardhowellphotography?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Edward Howell</a> on <a href="https://unsplash.com/photos/cooked-food-on-white-ceramic-plate-vvUy1hWVYEA?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
-      
+
+      https://uicolors.app/generate/ff2056

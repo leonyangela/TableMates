@@ -2,8 +2,24 @@ import "./landing-page.styles.css";
 import WrapperComponent from "../../components/Wrapper/wrapper.component";
 import ReserveComponent from "../../components/Reserve/reserve.component";
 import MapComponent from "../../components/Map/map.component";
+import { useMapStore } from "../../store/useMapStore";
+import { useBookingStore } from "../../store/useBookingStore";
+import moment from "moment";
 
 const LandingPage = () => {
+  const selectedLocation = useMapStore((state) => state.selectedLocation);
+  const latestBooking = useBookingStore(
+    (state) => state.bookings[state.bookings.length - 1],
+  );
+  const bookingPreview = useBookingStore((state) => state.bookingPreview);
+  const setBookingPreview = useBookingStore((state) => state.setBookingPreview);
+
+  const { date, time, type, guests } = latestBooking || {};
+
+  const closePreviewOnClick = () => {
+    setBookingPreview(false);
+  };
+
   return (
     <WrapperComponent>
       <div className="relative h-full w-full">
@@ -50,17 +66,50 @@ const LandingPage = () => {
               Effortless Booking, Unforgettable Experience
             </h1>
 
-            <h1 className="text-center text-2xl pt-10">Place: <span className="font-bold">Riverbar & Kitchen</span></h1>
+            <h1 className="text-center text-2xl pt-10">
+              Place: <span className="font-bold">{selectedLocation.name}</span>
+            </h1>
 
             <div className="p-4">
               <ReserveComponent />
             </div>
           </div>
-          <div className=" w-full h-auto rounded-2xl overflow-hidden">
+          <div className="w-full h-full rounded-2xl overflow-hidden">
             <MapComponent />
           </div>
         </div>
       </div>
+      {bookingPreview && (
+        <div
+          className={`h-screen w-screen bg-black/50 top-0 left-0 fixed z-20 flex items-center justify-center`}
+        >
+          <div className="relative w-fit h-fit bg-white rounded-lg p-6 pt-4">
+            <h1>Your booking was successful!</h1>
+            <h1>
+              We’re excited to have you. Your reservation is confirmed and we
+              look forward to serving you!
+            </h1>
+            <h1 className="pt-4">Here are your booking details:</h1>
+            <div className="">
+              <h1>Date: {moment(date).format("Do MMMM YYYY")}</h1>
+              <h1>Time: {time}</h1>
+              <h1>Place: {selectedLocation.name} </h1>
+              <h1>
+                Dining Options:{" "}
+                {type.charAt(0).toUpperCase() + type.slice(1) + " Dining"}{" "}
+              </h1>
+              <h1>Number of People: {guests}</h1>
+            </div>
+
+            <h1
+              className="float-right hover:cursor-pointer"
+              onClick={closePreviewOnClick}
+            >
+              book another
+            </h1>
+          </div>
+        </div>
+      )}
     </WrapperComponent>
   );
 };
