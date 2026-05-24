@@ -1,0 +1,51 @@
+.landing-page {
+  background-image: url("../../assets/Images/homepage.jpg");
+  border-top-right-radius: var(--radius-4xl);
+  border-bottom-left-radius: var(--radius-4xl);
+  height: 96vh;
+}
+
+.why-us-title {
+  font-size: var(--text-2xl);
+  color: black;
+}
+
+.why-us-subtitle {
+  font-size: var(--text-lg);
+  color: black;
+}
+
+.why-us-text {
+  font-size: var(--text-base);
+  color: black;
+}
+
+.how-to-title {
+  font-size: var(--text-3xl);
+}
+
+.how-to-subtitle {
+  font-size: var(--text-lg);
+}
+
+.how-to-text {
+  font-size: var(--text-base);
+}
+
+.why-us-card-item {
+  /* background-color: var(--color-primary); */
+  border: 0.1rem;
+  border-style: solid;
+  border-color: var(--color-primary);
+  border-radius: var(--radius-lg);
+  position: relative;
+  
+}
+
+.why-us-card-icon {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: black;
+  opacity: 60%;
+}

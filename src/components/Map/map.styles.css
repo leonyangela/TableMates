@@ -1,0 +1,8 @@
+.mapboxgl-popup-close-button:focus-visible {
+  outline: none;
+}
+
+/* .mapboxgl-popup-content {
+  font-weight: 600;
+  border-radius: 8px;
+} */
