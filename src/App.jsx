@@ -1,12 +1,33 @@
-import { Route, Routes } from "react-router";
 import "./App.css";
-import LandingPage from "./pages/landing-page/landing-page.pages";
+
+import { Route, Routes } from "react-router";
+import { useEffect } from "react";
+
+import { useAuthStore } from "./store/useAuthStore";
+
+import LandingPage from "./pages/landing/landing-page.page";
+import LoginPage from "./pages/auth/login.page";
+import DiscoverPage from "./pages/discover/discover.page";
+import RestaurantPage from "./pages/restaurant/restaurant.page";
+import SignUpPage from "./pages/auth/sign-up.page";
+
 
 function App() {
+  const { onAuthListener } = useAuthStore();
+
+  useEffect(() => {
+    onAuthListener();
+  }, []);
+
   return (
     <>
       <Routes>
         <Route index path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/sign-up" element={<SignUpPage />} />
+
+        <Route path="/discover" element={<DiscoverPage />} />
+        <Route path="/restaurant" element={<RestaurantPage />} />
       </Routes>
     </>
   );

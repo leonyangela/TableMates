@@ -1,66 +1,77 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useBookingStore } from "../../store/useBookingStore";
 import { useMapStore } from "../../store/useMapStore";
+import TimeCard from "../card/time-card/time-card.component";
 
-function ReserveComponent() {
+const FormComponent = () => {
   const reserveInit = {
     date: "",
     time: "",
     type: "",
     guests: "",
+    location: "",
   };
-
   const [reserve, setReserve] = useState(reserveInit);
-  const addBooking = useBookingStore((state) => state.addBooking);
+
   const setBookingPreview = useBookingStore((state) => state.setBookingPreview);
   const selectedLocation = useMapStore((state) => state.selectedLocation);
 
+  const currentBooking = useBookingStore((state) => state.currentBooking);
+  const setCurrentBooking = useBookingStore((state) => state.setCurrentBooking);
+
   const { date, time, type, guests } = reserve;
 
-  const isFormValid = date && time && type && guests && selectedLocation;
+  const isFutureDate = date && new Date(date) > new Date();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const isFormValid =
+    isFutureDate && time && type && guests > 0 && selectedLocation?.name;
 
-    // Basic validation
-    if (!date || !time || !type || !guests) {
-      console.log("Please fill all fields");
-      return;
-    }
+  const handleSubmit = () => {
+    setCurrentBooking({
+      ...reserve,
+      location: [selectedLocation.lng, selectedLocation.lat],
+    });
 
-    // Add booking to Zustand store
-    addBooking(reserve);
-
-    console.log("Booking saved:", reserve);
-    setBookingPreview(true);
-
-    // Optional: reset form
-    setReserve(reserveInit);
+    setBookingPreview("confirmation");
   };
+
+  useEffect(() => {
+    if (Object.keys(currentBooking || {}).length === 0) {
+      setReserve(reserveInit);
+    }
+  }, [currentBooking]);
 
   return (
     <div className="relative flex flex-col gap-4 justify-center items-center">
       <div className="relative flex justify-start items-center gap-4 w-3/4">
-        {/* {!date && <span className="placeholder absolute left-2 top-2">DD/MM/YYYY</span>} */}
         <h1 className="w-52">Select Date:</h1>
         <input
           type="date"
           value={date}
           onChange={(e) => setReserve({ ...reserve, date: e.target.value })}
+          min={new Date().toISOString().split("T")[0]}
           className="datetimeinput border rounded-sm p-2"
         />
       </div>
 
       <div className="relative flex justify-start items-center gap-4 w-3/4">
-        {/* {!time && <span className="placeholder absolute left-2 top-2">HH:MM</span>} */}
         <h1 className="w-52">Select Time:</h1>
-        <input
-          type="time"
-          value={time}
-          onChange={(e) => setReserve({ ...reserve, time: e.target.value })}
-          className="datetimeinput border rounded-sm p-2"
-          required
-        />
+
+        <div className="grid grid-cols-3 gap-2 text-center justify-center items-center">
+          {selectedLocation?.time_opening.map((slot, id) => {
+            return (
+              <TimeCard
+                key={id}
+                id={id}
+                text={slot}
+                additionalClassName={`${reserve.time == slot ? "border-accent" : "border-secondary "}`}
+                onClick={() => {
+                  setReserve({ ...reserve, time: slot });
+                }}
+              />
+            );
+          })}
+        </div>
       </div>
 
       <div className="relative flex justify-start items-center gap-4 w-3/4">
@@ -78,8 +89,10 @@ function ReserveComponent() {
               Select your dining type
             </option>
           )}
-          <option value="casual">Casual Dining</option>
-          <option value="private">Private Dining</option>
+          <option value="indoor_dining">Indoor Dining</option>
+          <option value="outdoor_dining">Outdoor Dining</option>
+          <option value="bar_seating">Bar Seating</option>
+          <option value="private_dining">Private Dining</option>
           <option value="event">Special Event</option>
         </select>
       </div>
@@ -103,10 +116,10 @@ function ReserveComponent() {
       </div>
 
       <button
-        className={` w-3/4 text-center mx-auto rounded-lg py-1.5 px-2 mt-8 text-base hover:cursor-pointer hover:bg-rose-300 hover:text-white transition-all duration-200 ease-in-out ${
+        className={` w-3/4 text-center mx-auto rounded-lg py-1.5 px-2 mt-8 text-base transition-all duration-200 ease-in-out ${
           isFormValid
-            ? "bg-rose-600 text-white hover:bg-rose-300 cursor-pointer"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            ? "bg-primary text-white hover:bg-info cursor-pointer"
+            : "bg-secondary/60 text-white hover:bg-secondary cursor-not-allowed"
         }`}
         disabled={!isFormValid}
         onClick={handleSubmit}
@@ -115,6 +128,6 @@ function ReserveComponent() {
       </button>
     </div>
   );
-}
+};
 
-export default ReserveComponent;
+export default FormComponent;

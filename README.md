@@ -15,4 +15,10 @@ Photo by <a href="https://unsplash.com/@nickkarvounis?utm_source=unsplash&utm_me
 
 Photo by <a href="https://unsplash.com/@edwardhowellphotography?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Edward Howell</a> on <a href="https://unsplash.com/photos/cooked-food-on-white-ceramic-plate-vvUy1hWVYEA?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
 
+Photo by <a href="https://unsplash.com/@cel_?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Celine Ylmz</a> on <a href="https://unsplash.com/photos/restaurant-with-lighted-string-lights-L2ost-ZEmK8?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
+
+Photo by <a href="https://unsplash.com/@pwign?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Anh Nguyen</a> on <a href="https://unsplash.com/photos/vegetable-and-meat-on-bowl-kcA-c3f_3FE?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
+Photo by <a href="https://unsplash.com/@meganmarkham?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Megan Bucknall</a> on <a href="https://unsplash.com/photos/empty-chairs-and-tables-outside-building-o49uRfALSiI?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
+      
+Photo by Tuğçe Açıkyürek: https://www.pexels.com/photo/interior-of-a-restaurant-15297133/
       https://uicolors.app/generate/ff2056

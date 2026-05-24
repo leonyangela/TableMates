@@ -4,4 +4,11 @@
   --font-google-sans: "GoogleSans", sans-serif;
   --font-google-sans-italic: "GoogleSansItalic", sans-serif;
   --font-oswald: "Oswald", sans-serif;
+
+  --color-primary: #f55d3e; /* tomato */
+  --color-secondary: #878e88; /* olive grey */
+  --color-accent: #266575; /* bright amber */
+  --color-background: #ffffff; /*white */
+  --color-info: #76bed0; /* sky blue light */
+
 }
