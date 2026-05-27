@@ -146,7 +146,7 @@ const SignUpPage = () => {
 
           <p className="text-center text-sm mt-2">Have an account?</p>
 
-          <SubmitBtn text="Login" />
+          <SubmitBtn text="Login" onClick={() => navigate("/login")} />
         </form>
       </div>
     </div>

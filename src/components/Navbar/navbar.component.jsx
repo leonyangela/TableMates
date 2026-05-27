@@ -17,6 +17,7 @@ const Navbar = () => {
       auth: "guest",
     },
     { title: "Sign Up", path: "/sign-up", auth: "guest" },
+    { title: "Dining Journey", path: "/dining-journey", auth: "user"}
   ];
 
   const navLinks = navbarItem.filter((item) => {
