@@ -402,8 +402,29 @@ const LandingPage = () => {
       </div> */}
 
       {/* Review */}
-      <div className="border-2 border-secondary h-46 rounded-2xl mb-10 p-4">
-        <div className="h-full flex flex-row gap-20 justify-start items-start">
+      <div className="border-2 border-secondary h-auto rounded-2xl mb-10 p-4 py-10 flex">
+        <div className="w-1/2">
+          <h1 className="text-3xl">What Our Customers Are Saying.</h1>
+          <h1 className="text-xl pt-1 text-gray-400">
+            Real Experiences, Real Reservations. Trusted by Food Lovers.
+          </h1>
+        </div>
+        <div className="w-1/2 relative">
+          <FormatQuoteIcon
+            className="text-info opacity-100 z-20"
+            sx={{ fontSize: 48 }}
+          />
+          <h1 className="pt-10 pb-4">A seamless dining experience from start to finish Finding a great restaurant used to mean checking multiple websites,
+            reading reviews, and calling ahead to see if tables were available.
+            With this platform, everything is in one place. I was able to
+            discover a new restaurant, book a table instantly, and receive
+            confirmation within seconds. It made planning our dinner incredibly
+            easy, and the experience at the restaurant was exactly what we
+            expected."
+          </h1>
+          <h1 className="text-black italic pt-10">— Sarah Mitchell</h1>
+        </div>
+        {/* <div className="h-full flex flex-row gap-20 justify-start items-start">
           <h1 className="text-5xl text-primary self-start">Reviews</h1>
 
           <div className="">
@@ -435,7 +456,7 @@ const LandingPage = () => {
               <span className="text-black italic">Riverbar & Kitchen</span>
             </h1>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* <h1 className="text-2xl text-center">How It Works</h1>

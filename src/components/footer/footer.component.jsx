@@ -34,7 +34,7 @@ const Footer = () => {
         ></SubmitBtn>
       </div>
       <div className="w-1/3 text-right">
-        <h1 className="hover:font-bold cursor-pointer transition-all duration-100 ease-in-out">
+        {/* <h1 className="hover:font-bold cursor-pointer transition-all duration-100 ease-in-out">
           Home
         </h1>
         <h1 className="hover:font-bold cursor-pointer transition-all duration-100 ease-in-out">
@@ -51,7 +51,7 @@ const Footer = () => {
         </h1>
         <h1 className="hover:font-bold cursor-pointer transition-all duration-100 ease-in-out">
           Terms & Conditions
-        </h1>
+        </h1> */}
       </div>
     </div>
   );
