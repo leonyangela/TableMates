@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useAuthStore } from "../../store/useAuthStore";
 import { Link, useNavigate } from "react-router";
 
-import Navbar from "../../components/navbar/navbar.component";
 import Footer from "../../components/footer/footer.component";
 import SubmitBtn from "../../components/button/submit-btn.component";
 
