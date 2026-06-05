@@ -10,13 +10,14 @@ const Navbar = () => {
   const navbarItem = [
     { title: "Home", path: "/", auth: "all" },
     { title: "Discover", path: "/discover", auth: "all" },
-    { title: "Restaurants", path: "/restaurant", auth: "all" },
+    // { title: "Restaurants", path: "/restaurant", auth: "all" },
     {
       title: "Login",
       path: "/login",
       auth: "guest",
     },
     { title: "Sign Up", path: "/sign-up", auth: "guest" },
+    { title: "Dining Journey", path: "/dining-journey", auth: "user"}
   ];
 
   const navLinks = navbarItem.filter((item) => {
@@ -64,7 +65,7 @@ const Navbar = () => {
                 text={item.title}
                 className={
                   item.title === "Sign Up"
-                    ? "border-2 border-secondary bg-secondary text-white hover:text-primary! hover:border-primary! hover:bg-white"
+                    ? "border-2 border-info bg-info text-white hover:text-primary! hover:border-primary! hover:bg-white"
                     : "border-2"
                 }
                 onClick={() => navigate(item.path)}

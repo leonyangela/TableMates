@@ -10,6 +10,7 @@ import LoginPage from "./pages/auth/login.page";
 import DiscoverPage from "./pages/discover/discover.page";
 import RestaurantPage from "./pages/restaurant/restaurant.page";
 import SignUpPage from "./pages/auth/sign-up.page";
+import DiningJourneyPage from "./pages/dining-journey/dining-journey.page";
 
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
 
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/restaurant" element={<RestaurantPage />} />
+        <Route path="/dining-journey" element={<DiningJourneyPage />} />
       </Routes>
     </>
   );

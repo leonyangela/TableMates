@@ -13,6 +13,9 @@ import GppGoodIcon from "@mui/icons-material/GppGood";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
+import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
+import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+import EventIcon from "@mui/icons-material/Event";
 
 import WrapperComponent from "../../components/wrapper/wrapper.component";
 import FormComponent from "../../components/reserve-form/reserve-form.component";
@@ -102,7 +105,7 @@ const LandingPage = () => {
         <div className="z-10 w-full h-full absolute top-0 left-0 bg-black opacity-40 rounded-tr-4xl rounded-bl-4xl"></div>
       </div>
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-2 my-10">
+      <div className="relative grid grid-cols-1 lg:grid-cols-2 mt-10 mb-6">
         <FloatingCardImg />
 
         <div>
@@ -176,17 +179,22 @@ const LandingPage = () => {
       </div>
 
       {/* Quotes */}
-      <div className="relative bg-accent w-full h-80 p-10 rounded-md">
+      <div
+        className="relative bg-accent w-full h-80 p-10 rounded-2xl bg-cover bg-no-repeat overflow-hidden"
+        style={{ backgroundImage: `url(${HomeImg1})` }}
+      >
+        <div className="absolute inset-0 bg-black opacity-40"></div>
         <FormatQuoteIcon
-          className="absolute text-white opacity-40 left-0 top-0"
+          className="absolute text-white opacity-60 left-0 -top-2 z-20"
           sx={{ fontSize: 128 }}
         />
-        <h1 className="text-white text-3xl">
-          Plans change, and dining shouldn’t be stressful. Whether you’re
-          booking in advance or last minute, you can adjust or cancel your
-          reservation with ease.
+        <h1 className="text-white text-3xl relative z-20">
+          Book a table with friends, family, or colleagues, or join an existing
+          table if you're dining solo. Discover new conversations, share
+          memorable moments, and enjoy great food with people who appreciate
+          good company as much as you do.
         </h1>
-        <div className="w-40 bg-white h-1 mt-4"></div>
+        <div className="w-40 bg-white h-1 mt-4 z-20 relative"></div>
         {/* <h1 className="text-2xl text-white text-center">
             Occasion-Based Choices
             <AutoAwesomeIcon className="absolute top-10 ml-1" />
@@ -213,70 +221,211 @@ const LandingPage = () => {
       </div>
 
       {/* Why us */}
-      <div className="flex flex-row gap-4 m-10 justify-center items-stretch">
+      <div className="flex flex-row gap-4 py-10 justify-center items-stretch ">
+        <h1 className="w-1/5 text-3xl pl-4">Why Choose Us?</h1>
+
+        <div className="w-1/2">
+          <h1 className="text-base text-black pb-10">
+            We're building more than a restaurant booking platform—we're
+            creating a community around shared dining experiences. Find the
+            right restaurant faster, book instantly, and spend more time
+            enjoying the moments that matter. Whether you're gathering with
+            friends, celebrating something special, or simply looking for a
+            great meal, we're here to make it effortless. And for those who
+            don't want to eat alone, our platform makes it easy to connect with
+            others and turn a meal into a meaningful social experience. Great
+            food tastes even better when shared.
+          </h1>
+          <SubmitBtn text={"More About Us"} className={""} />
+        </div>
+
         <div
-          className="w-1/3 h-auto bg-center bg-cover rounded-2xl rounded-tl-none"
+          className="w-2/5 h-auto bg-center bg-cover rounded-2xl"
           style={{ backgroundImage: `url(${HomeImg1})` }}
         ></div>
-        <div className="w-2/3  ">
-          <h1 className="text-3xl text-center pb-4">Why Choose Us?</h1>
+      </div>
 
-          <div className="flex flex-row gap-4">
-            <div className="w-1/2 relative flex flex-col justify-between">
-              {featuredCardData.map(
-                ({ id, title, additionalClass, text, icon }) => (
-                  <FeaturedCard
-                    key={id}
-                    number={id}
-                    title={title}
-                    additionalClass={additionalClass}
-                    text={text}
-                    icon={icon}
-                  />
-                ),
-              )}
+      <div className="relative p-4 mb-10">
+        <h1 className="text-center text-2xl">
+          Designed for Better Dining Experiences
+        </h1>
+        <h2 className="text-center text-lg text-gray-400">
+          Dine. Connect. Enjoy.
+        </h2>
+
+        <div className="pt-4 grid grid-cols-2 gap-4">
+          <div className="py-2 px-4 flex flex-row gap-4 justify-center items-center">
+            <div>
+              <RestaurantMenuIcon
+                className="text-primary"
+                sx={{ fontSize: 48 }}
+              />
             </div>
-            <div className="w-1/2 relative">
-              <p className="">
-                Great moments start with the right place. We cut through the
-                noise to bring you restaurants that are actually worth your time
-                — not just trending for a week, but consistently good. Every
-                spot is selected for quality, experience, and reliability, so
-                you can book with confidence instead of guesswork.
+
+            <div>
+              <h1 className="text-xl">Discover Great Restaurants</h1>
+
+              <p>
+                Explore curated restaurants, hidden gems, and local favorites
+                all in one place. Find the perfect spot for every occasion
+                without endless searching.
               </p>
-              <div className="rounded-lg border-2 border-info p-2 mt-4 mb-4">
-                <h1 className="text-xl">Our Mission</h1>
-                {/* <div className="w-full h-0.5 bg-white"/> */}
-                <h1 className="">
-                  Our mission is to make every dining experience easier to
-                  access by helping people quickly find and book great
-                  restaurants without friction or unnecessary steps. We focus on
-                  making the process more reliable through real-time
-                  availability and instant confirmation, so users can trust that
-                  their reservation is secured. Ultimately, we aim to make
-                  dining more enjoyable by removing stress from planning—from
-                  the moment of discovery to the final reservation.
-                </h1>
-              </div>
-              <div className="rounded-lg border-2 border-info p-2">
-                <h1 className="text-black text-xl">Our Vision</h1>
-                {/* <div className="w-full h-0.5 bg-white"/> */}
-                <h1 className="text-black ">
-                  Our vision is to create a world where booking a restaurant is
-                  completely seamless, instant, and stress-free for everyone. We
-                  aim to become the most trusted platform that connects people
-                  to great dining experiences anytime, anywhere.
-                </h1>
-              </div>
+            </div>
+          </div>
+          <div className="py-2 px-4 flex flex-row gap-4 justify-center items-center">
+            <div>
+              <AccessTimeIcon className="text-primary" sx={{ fontSize: 48 }} />
+            </div>
+            <div>
+              <h1 className="text-xl">Instant Reservations</h1>
+
+              <p>
+                Book your table in seconds with real-time availability and quick
+                confirmations. No phone calls, no waiting, no hassle.
+              </p>
+            </div>
+          </div>
+          <div className="py-2 px-4 flex flex-row gap-4 justify-center items-center">
+            <div>
+              <PeopleAltIcon className="text-primary" sx={{ fontSize: 48 }} />
+            </div>
+            <div>
+              <h1 className="text-xl">Dine Together</h1>
+
+              <p>
+                Dining solo? Join shared tables and connect with fellow food
+                lovers. Turn every meal into an opportunity for great
+                conversations and new friendships.
+              </p>
+            </div>
+          </div>
+          <div className="py-2 px-4 flex flex-row gap-4 justify-center items-center">
+            <div>
+              <EventIcon className="text-primary" sx={{ fontSize: 48 }} />
+            </div>
+            <div>
+              <h1 className="text-xl">Flexible Bookings</h1>
+
+              <p>
+                Plans change. Easily update, reschedule, or cancel your
+                reservations whenever needed, giving you complete control over
+                your dining experience.
+              </p>
             </div>
           </div>
         </div>
       </div>
 
+      <div className="w-full p-4 mb-10">
+        <div className="flex flex-row gap-4 justify-between items-center">
+          <h1 className="w-2/5 text-4xl uppercase pb-10">
+            We bring great dining experiences to your table
+          </h1>
+          <p className="text-gray-500 text-sm w-1/2">
+            A seamless way to explore top-rated restaurants, reserve tables
+            instantly, and enjoy dining experiences without the hassle of phone
+            calls or waiting lists.
+          </p>
+        </div>
+        <div className=" flex flex-row gap-10 justify-between items-center">
+          <div className="text-xl">
+            Restaurants Listed
+            <br />
+            <span className="text-4xl">200+</span>
+          </div>
+          <div className="text-xl">
+            Bookings Completed
+            <br />
+            <span className="text-4xl">300+</span>
+          </div>
+          <div className="text-xl">
+            Cities Covered
+            <br />
+            <span className="text-4xl">10+</span>
+          </div>
+          <div className="text-xl">
+            Customer Satisfaction
+            <br />
+            <span className="text-4xl">95%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* <div className="w-2/3">
+        <div className="flex flex-row gap-4">
+          <div className="w-1/2 relative flex flex-col justify-between">
+            {featuredCardData.map(
+              ({ id, title, additionalClass, text, icon }) => (
+                <FeaturedCard
+                  key={id}
+                  number={id}
+                  title={title}
+                  additionalClass={additionalClass}
+                  text={text}
+                  icon={icon}
+                />
+              ),
+            )}
+          </div>
+          <div className="w-1/2 relative">
+            <p className="">
+              Great moments start with the right place. We cut through the noise
+              to bring you restaurants that are actually worth your time — not
+              just trending for a week, but consistently good. Every spot is
+              selected for quality, experience, and reliability, so you can book
+              with confidence instead of guesswork.
+            </p>
+            <div className="rounded-lg border-2 border-info p-2 mt-4 mb-4">
+              <h1 className="text-xl">Our Mission</h1>
+              <h1 className="">
+                Our mission is to make every dining experience easier to access
+                by helping people quickly find and book great restaurants
+                without friction or unnecessary steps. We focus on making the
+                process more reliable through real-time availability and instant
+                confirmation, so users can trust that their reservation is
+                secured. Ultimately, we aim to make dining more enjoyable by
+                removing stress from planning—from the moment of discovery to
+                the final reservation.
+              </h1>
+            </div>
+            <div className="rounded-lg border-2 border-info p-2">
+              <h1 className="text-black text-xl">Our Vision</h1>
+              <h1 className="text-black ">
+                Our vision is to create a world where booking a restaurant is
+                completely seamless, instant, and stress-free for everyone. We
+                aim to become the most trusted platform that connects people to
+                great dining experiences anytime, anywhere.
+              </h1>
+            </div>
+          </div>
+        </div>
+      </div> */}
+
       {/* Review */}
-      <div className="border-2 border-secondary h-46 rounded-2xl mb-10 p-4">
-        <div className="h-full flex flex-row gap-20 justify-start items-start">
-          <h1 className="text-5xl text-info self-start">Reviews</h1>
+      <div className="border-2 border-secondary h-auto rounded-2xl mb-10 p-4 py-10 flex">
+        <div className="w-1/2">
+          <h1 className="text-3xl">What Our Customers Are Saying.</h1>
+          <h1 className="text-xl pt-1 text-gray-400">
+            Real Experiences, Real Reservations. Trusted by Food Lovers.
+          </h1>
+        </div>
+        <div className="w-1/2 relative">
+          <FormatQuoteIcon
+            className="text-info opacity-100 z-20"
+            sx={{ fontSize: 48 }}
+          />
+          <h1 className="pt-10 pb-4">A seamless dining experience from start to finish Finding a great restaurant used to mean checking multiple websites,
+            reading reviews, and calling ahead to see if tables were available.
+            With this platform, everything is in one place. I was able to
+            discover a new restaurant, book a table instantly, and receive
+            confirmation within seconds. It made planning our dinner incredibly
+            easy, and the experience at the restaurant was exactly what we
+            expected."
+          </h1>
+          <h1 className="text-black italic pt-10">— Sarah Mitchell</h1>
+        </div>
+        {/* <div className="h-full flex flex-row gap-20 justify-start items-start">
+          <h1 className="text-5xl text-primary self-start">Reviews</h1>
 
           <div className="">
             <h1 className="text-black">
@@ -307,7 +456,7 @@ const LandingPage = () => {
               <span className="text-black italic">Riverbar & Kitchen</span>
             </h1>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* <h1 className="text-2xl text-center">How It Works</h1>

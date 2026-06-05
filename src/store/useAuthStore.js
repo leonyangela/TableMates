@@ -35,7 +35,7 @@ export const useAuthStore = create((set) => ({
             photoURL: user.photoURL,
           },
           isLogin: true,
-          loading: false
+          loading: false,
         });
       } else {
         set({
@@ -46,7 +46,7 @@ export const useAuthStore = create((set) => ({
     });
   },
 
-  signup: async ({email, password, displayName}) => {
+  signup: async ({ email, password, displayName }) => {
     try {
       set({ loading: true, error: null });
 
@@ -58,13 +58,11 @@ export const useAuthStore = create((set) => ({
         user: {
           uid: user.uid,
           email: user.email,
-          name: displayName
+          name: displayName,
         },
         isLogin: true,
         loading: false,
       });
-
-      
     } catch (err) {
       set({ error: err.message, loading: false });
     }
@@ -113,7 +111,34 @@ export const useAuthStore = create((set) => ({
         loading: false,
       });
     } catch (err) {
-      set({ error: err.message, loading: false });
+      let message = "Something went wrong.";
+
+      switch (err.code) {
+        case "auth/user-not-found":
+          message = "No account found with this email. Please sign up first.";
+          break;
+
+        case "auth/invalid-credential":
+          message =
+            "Make sure your email and password are correct. Please try again.";
+          break;
+
+        case "auth/too-many-requests":
+          message = "Too many login attempts. Please try again later.";
+          break;
+
+        case "auth/invalid-email":
+          message = "Invalid email format.";
+          break;
+
+        default:
+          message = err.message;
+      }
+
+      set({
+        error: message,
+        loading: false,
+      });
     }
   },
 }));
