@@ -25,6 +25,7 @@ import RestaurantCard from "../../components/card/restaurant-card/restaurant-car
 import BookingComponent from "../../components/booking/booking.component";
 import SubmitBtn from "../../components/button/submit-btn.component";
 import FeaturedCard from "../../components/card/featured-card/featured-card.component";
+import TestimoniCardComponent from "../../components/card/testimoni-card/testimoni-card.component";
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -402,61 +403,8 @@ const LandingPage = () => {
       </div> */}
 
       {/* Review */}
-      <div className="border-2 border-secondary h-auto rounded-2xl mb-10 p-4 py-10 flex">
-        <div className="w-1/2">
-          <h1 className="text-3xl">What Our Customers Are Saying.</h1>
-          <h1 className="text-xl pt-1 text-gray-400">
-            Real Experiences, Real Reservations. Trusted by Food Lovers.
-          </h1>
-        </div>
-        <div className="w-1/2 relative">
-          <FormatQuoteIcon
-            className="text-info opacity-100 z-20"
-            sx={{ fontSize: 48 }}
-          />
-          <h1 className="pt-10 pb-4">A seamless dining experience from start to finish Finding a great restaurant used to mean checking multiple websites,
-            reading reviews, and calling ahead to see if tables were available.
-            With this platform, everything is in one place. I was able to
-            discover a new restaurant, book a table instantly, and receive
-            confirmation within seconds. It made planning our dinner incredibly
-            easy, and the experience at the restaurant was exactly what we
-            expected."
-          </h1>
-          <h1 className="text-black italic pt-10">— Sarah Mitchell</h1>
-        </div>
-        {/* <div className="h-full flex flex-row gap-20 justify-start items-start">
-          <h1 className="text-5xl text-primary self-start">Reviews</h1>
-
-          <div className="">
-            <h1 className="text-black">
-              Not just hype — people actually love these spots
-            </h1>
-            <p className="text-black ">
-              Real reviews, real bookings, and zero paid fluff. If it’s on here,
-              it’s because people keep going back.
-            </p>
-
-            <div className="flex gap-6 items-center">
-              <span className="text-black">
-                <StarIcon className="text-accent" />
-                <StarIcon className="text-accent" />
-                <StarIcon className="text-accent" />
-                <StarIcon className="text-accent" />
-                <StarHalfIcon className="text-accent" />
-              </span>
-
-              <span className="text-black">
-                1k+ tables booked over last month
-              </span>
-              <span className="text-black">50+ seating available</span>
-            </div>
-
-            <h1 className="text-black pt-10">
-              Location:{" "}
-              <span className="text-black italic">Riverbar & Kitchen</span>
-            </h1>
-          </div>
-        </div> */}
+      <div className="border-2 border-secondary h-95 rounded-2xl mb-10 p-4 py-10 flex">
+        <TestimoniCardComponent />
       </div>
 
       {/* <h1 className="text-2xl text-center">How It Works</h1>
@@ -485,7 +433,7 @@ const LandingPage = () => {
         </div> */}
 
       <div
-        className="relative w-full h-dvh bg-cover bg-no-repeat flex justify-center items-center rounded-t-xl overflow-hidden"
+        className="relative w-full h-80 bg-cover bg-no-repeat flex justify-center items-center rounded-t-xl overflow-hidden"
         style={{ backgroundImage: `url(${HomeImg1})` }}
       >
         <div className="absolute w-full h-full bg-black/50"></div>
@@ -493,13 +441,9 @@ const LandingPage = () => {
           <h1 className="text-4xl text-white text-center pb-4">
             Ready to book your table?
           </h1>
-          {/* <h1 className="text-center pt-4 pb-6 text-white text-2xl">
-            Find available restaurants and reserve instantly—no calls, no
-            waiting.
-          </h1> */}
           <SubmitBtn
             text={"Find a Table"}
-            className={`mx-auto border-white text-white hover:border-primary! hover:text-primary!`}
+            className={`mx-auto border-white text-white hover:border-gray-300! hover:text-gray-300!`}
             onClick={() => {
               navigate("/discover");
             }}

@@ -10,7 +10,7 @@ const Navbar = () => {
   const navbarItem = [
     { title: "Home", path: "/", auth: "all" },
     { title: "Discover", path: "/discover", auth: "all" },
-    // { title: "Restaurants", path: "/restaurant", auth: "all" },
+    { title: "Restaurants", path: "/restaurant", auth: "all" },
     {
       title: "Login",
       path: "/login",
