@@ -5,9 +5,21 @@
   --font-google-sans-italic: "GoogleSansItalic", sans-serif;
   --font-oswald: "Oswald", sans-serif;
 
-  --color-primary: #f55d3e; /* tomato */
-  --color-secondary: #878e88; /* olive grey */
-  --color-accent: #266575; /* bright amber */
+  --color-primary: #B5543A; /* terracota */
+  --color-secondary: #6F7F5F; /* olive accent */
+  --color-accent: #F0E6D8; /* soft limestone */
+  --color-info: #5A2E25; /* deep rusty */
   --color-background: #ffffff; /*white */
-  --color-info: #76bed0; /* sky blue light */
+
+  --color-rosy-copper-50: #f9efec;
+  --color-rosy-copper-100: #f3ded8;
+  --color-rosy-copper-200: #e6bdb2;
+  --color-rosy-copper-300: #da9c8b;
+  --color-rosy-copper-400: #cd7c65;
+  --color-rosy-copper-500: #c15b3e;
+  --color-rosy-copper-600: #9a4932;
+  --color-rosy-copper-700: #743625;
+  --color-rosy-copper-800: #4d2419;
+  --color-rosy-copper-900: #27120c;
+  --color-rosy-copper-950: #1b0d09;
 }

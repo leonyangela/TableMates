@@ -29,12 +29,12 @@ const Footer = () => {
         </h1>
         <SubmitBtn
           text={"Find a Table"}
-          className={`hover:border-accent! hover:text-accent! border-white! text-white! text-base`}
+          className={`text-base text-white border-white transition-all duration-200 ease-out hover:bg-gray-200!`}
           onClick={() => navigate("/discover")}
         ></SubmitBtn>
       </div>
       <div className="w-1/3 text-right">
-        {/* <h1 className="hover:font-bold cursor-pointer transition-all duration-100 ease-in-out">
+        <h1 className="hover:font-bold cursor-pointer transition-all duration-100 ease-in-out">
           Home
         </h1>
         <h1 className="hover:font-bold cursor-pointer transition-all duration-100 ease-in-out">
@@ -51,7 +51,7 @@ const Footer = () => {
         </h1>
         <h1 className="hover:font-bold cursor-pointer transition-all duration-100 ease-in-out">
           Terms & Conditions
-        </h1> */}
+        </h1>
       </div>
     </div>
   );

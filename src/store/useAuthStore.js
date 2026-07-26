@@ -11,10 +11,12 @@ import { create } from "zustand";
 import { auth } from "../utils/firebase.utils";
 
 export const useAuthStore = create((set) => ({
-  isLogin: false,
+  isLogin: JSON.parse(localStorage.getItem("wasLoggedIn") || "false"),
   user: null,
   error: null,
   loading: false,
+  authReady: false,
+
   // login: (userData) => set({ isLogin: true, user: userData, error: null }),
   logout: async () => {
     await signOut(auth);
@@ -25,7 +27,10 @@ export const useAuthStore = create((set) => ({
   clearError: () => set({ error: null }),
 
   onAuthListener: () => {
-    onAuthStateChanged(auth, (user) => {
+    return onAuthStateChanged(auth, (user) => {
+      // console.log("onAuthStateChanged fired:", user ? user.uid : "null");
+      // console.log(localStorage.getItem("wasLoggedIn"));
+      localStorage.setItem("wasLoggedIn", JSON.stringify(!!user));
       if (user) {
         set({
           user: {
@@ -36,11 +41,13 @@ export const useAuthStore = create((set) => ({
           },
           isLogin: true,
           loading: false,
+          authReady: true,
         });
       } else {
         set({
           user: null,
           isLogin: false,
+          authReady: true,
         });
       }
     });

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useBookingStore } from "../../store/useBookingStore";
 import { useMapStore } from "../../store/useMapStore";
 import moment from "moment";
@@ -9,6 +9,7 @@ import RestaurantCard from "../card/restaurant-card/restaurant-card.component";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import FmdBadIcon from "@mui/icons-material/FmdBad";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { filterAndSortRestaurants } from "../../utils/filterRestaurant.utils";
 
 const BookingComponent = () => {
   const latestBooking = useBookingStore(
@@ -30,14 +31,21 @@ const BookingComponent = () => {
 
   const { date, time, type, guests } = latestBooking || {};
 
+  const [sortBy, setSortBy] = useState("");
+
+  const sortedLocations = filterAndSortRestaurants({
+    restaurants: locations,
+    sortBy,
+  });
+
   const closePreviewOnClick = () => {
     setBookingPreview(false);
     setCurrentBooking({});
     setSelectedLocation({});
   };
 
-  const confirmBookingOnClick = () => {
-    addBooking();
+  const confirmBookingOnClick = async () => {
+    await addBooking(selectedLocation);
   };
 
   const locationCardOnClick = (item) => {
@@ -86,49 +94,77 @@ const BookingComponent = () => {
             !selectedLocation?.name ? "gap-4" : ""
           }`}
         >
-          <div className="h-150 overflow-auto ">
+          <div>
             <div
-              className={`flex items-center hover:cursor-pointer pb-2 ${Object.keys(selectedLocation).length > 0 ? "" : "hidden"}`}
-              onClick={backBtnOnClick}
+              className={`flex justify-end items-center gap-2 pb-4 ${!selectedLocation?.name ? "" : "hidden"}`}
             >
-              <ArrowBackIosIcon fontSize="small" />
-              Back
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">Sort by</option>
+                <option value="name-asc">Name (A–Z)</option>
+                <option value="name-desc">Name (Z–A)</option>
+                <option value="low">Price: Low to High</option>
+                <option value="high">Price: High to Low</option>
+              </select>
+
+              <button
+                onClick={() => setSortBy("")}
+                className={`bg-gray-200 text-black px-3 py-2 rounded-lg hover:bg-gray-300 transition text-sm ${sortBy ? "" : "hidden"}`}
+              >
+                Clear sort ✕
+              </button>
             </div>
-            {selectedLocation?.name && (
-              <h1 className="text-center text-2xl pt-10">
-                Place:{" "}
-                <span className="font-bold">{selectedLocation.name}</span>
-              </h1>
-            )}
-            {/* : (
+
+            <div className="h-150 overflow-auto ">
+              <div
+                className={`flex items-center hover:cursor-pointer pb-2 ${Object.keys(selectedLocation).length > 0 ? "" : "hidden"}`}
+                onClick={backBtnOnClick}
+              >
+                <ArrowBackIosIcon fontSize="small" />
+                Back
+              </div>
+              {selectedLocation?.name && (
+                <h1 className="text-center text-2xl pt-10">
+                  Place:{" "}
+                  <span className="font-bold">{selectedLocation.name}</span>
+                </h1>
+              )}
+              {/* : (
               <h1 className="text-center text-2xl pt-10">
                 Please select a venue
               </h1>
             ) */}
 
-            {!selectedLocation?.name ? (
-              locations.map((item, id) => {
-                return (
-                  <div
-                    key={id}
-                    className={`${id != 0 && "mt-4"} flex items-start justify-center border rounded-lg overflow-hidden group hover:border-primary`}
-                    onClick={() => locationCardOnClick(item)}
-                  >
-                    {/* <div className="w-2/3 p-4">{item.name}</div>
+              {!selectedLocation?.name ? (
+                sortedLocations.map((item, id) => {
+                  return (
+                    <div
+                      key={id}
+                      className={`${id != 0 && "mt-4"} flex items-start justify-center border rounded-lg overflow-hidden group hover:border-primary`}
+                      onClick={() => locationCardOnClick(item)}
+                    >
+                      {/* <div className="w-2/3 p-4">{item.name}</div>
                     <div className="w-1/3">
                       <img src={`${item.image}`}></img>
                     </div> */}
-                    <RestaurantCard item={item} additionalClassName={`group-hover:border-primary`} />
-                  </div>
-                );
-              })
-            ) : (
-              <div className={`p-4`}>
-                {selectedLocation?.name && <FormComponent />}
-              </div>
-            )}
+                      <RestaurantCard
+                        item={item}
+                        additionalClassName={`group-hover:border-primary`}
+                      />
+                    </div>
+                  );
+                })
+              ) : (
+                <div className={`p-4`}>
+                  {selectedLocation?.name && <FormComponent />}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="w-full h-150 rounded-2xl overflow-hidden">
+          <div className="w-full h-auto rounded-2xl overflow-hidden">
             <MapComponent />
           </div>
         </div>

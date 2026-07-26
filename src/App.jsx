@@ -12,12 +12,12 @@ import RestaurantPage from "./pages/restaurant/restaurant.page";
 import SignUpPage from "./pages/auth/sign-up.page";
 import DiningJourneyPage from "./pages/dining-journey/dining-journey.page";
 
-
 function App() {
-  const { onAuthListener } = useAuthStore();
-
+const { onAuthListener } = useAuthStore.getState();
   useEffect(() => {
-    onAuthListener();
+    // onAuthListener();
+    const unsubscribe = useAuthStore.getState().onAuthListener();
+    return () => unsubscribe && unsubscribe();
   }, []);
 
   return (
