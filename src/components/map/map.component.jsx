@@ -19,10 +19,33 @@ const MapComponent = () => {
     if (mapRef.current) return;
 
     mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
+
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
+      style: "mapbox://styles/mapbox/streets-v12",
       center: [153.0308782391196, -27.468051618835155],
       zoom: 13,
+      minzoom: 10,
+      maxzoom: 18,
+      maxBounds: [
+        [152.85, -27.65], // southwest corner [lng, lat]
+        [153.25, -27.25], // northeast corner [lng, lat]
+      ],
+    });
+
+    mapRef.current.on("style.load", () => {
+      //   console.log("Loaded style:", mapRef.current.getStyle().name);
+
+      const style = mapRef.current.getStyle();
+
+      style.layers.forEach((layer) => {
+        const shouldRemove =
+          layer.id.startsWith("bridge-") || layer.id.startsWith("building");
+
+        if (shouldRemove) {
+          mapRef.current.removeLayer(layer.id);
+        }
+      });
     });
 
     return () => {

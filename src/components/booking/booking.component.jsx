@@ -44,8 +44,8 @@ const BookingComponent = () => {
     setSelectedLocation({});
   };
 
-  const confirmBookingOnClick = () => {
-    addBooking();
+  const confirmBookingOnClick = async () => {
+    await addBooking(selectedLocation);
   };
 
   const locationCardOnClick = (item) => {
