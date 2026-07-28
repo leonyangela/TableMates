@@ -26,6 +26,11 @@ import BookingComponent from "../../components/booking/booking.component";
 import SubmitBtn from "../../components/button/submit-btn.component";
 import FeaturedCard from "../../components/card/featured-card/featured-card.component";
 import TestimoniCardComponent from "../../components/card/testimoni-card/testimoni-card.component";
+import BgImageComponent from "../../components/image/bg-image.component";
+import BaseBtn, {
+  ButtonExamples,
+} from "../../components/button/base-button.component";
+import FeatureSection from "../../components/card/featured-card/featured-card.component";
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -93,7 +98,30 @@ const LandingPage = () => {
   return (
     <WrapperComponent>
       <div className="relative h-full w-full">
-        <div className="landing-page w-full bg-center flex flex-col justify-center items-center">
+        <BgImageComponent
+          additionalClassName={`justify-center items-center px-30`}
+        >
+          <div className="w-full text-center z-20 relative text-white">
+            <h1 className="text-4xl">Great food, one reservation away.</h1>
+            <h1 className="text-4xl">where great meals begin.</h1>
+
+            <p className="text-xl py-4">
+              Whatever the occasion, finding the perfect restaurant should be
+              simple. Browse restaurants you'll love, see available tables
+              instantly, and book with condence in just a few taps.
+            </p>
+
+            <BaseBtn
+              text={"Find a Restaurant"}
+              onClick={() => {
+                navigate("/restaurants");
+              }}
+            >
+              Find a Restaurant
+            </BaseBtn>
+          </div>
+        </BgImageComponent>
+        {/* <div className="landing-page w-full bg-center flex flex-col justify-center items-center">
           <h1 className="z-20 relative text-white text-7xl">
             Skip the Line. Get a Table.
           </h1>
@@ -103,8 +131,38 @@ const LandingPage = () => {
             moments.
           </p>
         </div>
-        <div className="z-10 w-full h-full absolute top-0 left-0 bg-black opacity-40 rounded-tr-4xl rounded-bl-4xl"></div>
+        <div className="z-10 w-full h-full absolute top-0 left-0 bg-black opacity-40 rounded-tr-4xl rounded-bl-4xl"></div> */}
       </div>
+
+      <FeatureSection
+        eyebrow="WHY CHOOSE US?"
+        title="DINING MADE SIMPLE"
+        subtitle="Finding a great restaurant shouldn't feel like work. We help you discover, compare, and reserve tables effortlessly, so you can focus on the people you're dining with."
+        features={[
+          {
+            title: "Discover Places You'll Love",
+            body: "Explore a smarter way to find restaurants, discover new dining spots, and choose the perfect place for every occasion.",
+          },
+          {
+            title: "Dine Together Easily",
+            body: "Plan dining together effortlessly by inviting friends, sharing reservations, and keeping everyone connected in one place.",
+          },
+          {
+            title: "Seamless Experience",
+            body: "Enjoy a smoother way to discover, book, and manage your reservations, with everything you need in one simple experience.",
+          },
+          {
+            title: "Personalized Dining",
+            body: "Discover restaurants that match your taste, preferences, and occasions, for dining experiences that feel more meaningful.",
+          },
+        ]}
+      />
+
+      <FeatureSection
+        eyebrow="discover restaurants"
+        title="find the perfect place for every craving."
+        subtitle="Explore restaurants for every occasion, from neighborhood favorites to trending hotspots. Browse by cuisine, location, or mood and discover places worth coming back to."
+      />
 
       <div className="relative grid grid-cols-1 lg:grid-cols-2 mt-10 mb-6">
         <FloatingCardImg />

@@ -12,12 +12,13 @@ const Navbar = () => {
 
   const navbarItem = [
     { title: "Home", path: "/", auth: "all" },
-    { title: "Discover", path: "/discover", auth: "all" },
-    { title: "Restaurants", path: "/restaurant", auth: "all" },
+    { title: "Restaurant", path: "/restaurant", auth: "all" },
+    // { title: "Restaurants", path: "/restaurant", auth: "all" },
     { title: "Login", path: "/login", auth: "guest" },
     { title: "Sign Up", path: "/sign-up", auth: "guest" },
-    { title: "Dining Journey", path: "/dining-journey", auth: "user" },
     {title: "Community Dining", path: "/community-dining", auth: "user"},
+    { title: "Dining Journey", path: "/dining-journey", auth: "user" },
+    {title: "Components", path: "/components", auth: "all"},
   ];
 
   const navLinks = navbarItem.filter((item) => {

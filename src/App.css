@@ -5,10 +5,20 @@
   --font-google-sans-italic: "GoogleSansItalic", sans-serif;
   --font-oswald: "Oswald", sans-serif;
 
-  --color-primary: #B5543A; /* terracota */
-  --color-secondary: #6F7F5F; /* olive accent */
-  --color-accent: #F0E6D8; /* soft limestone */
-  --color-info: #5A2E25; /* deep rusty */
+  /* base color: #B5543A terracota */
+
+  /* Color Palette */
+  /* 
+    --color-primary: #9a4932; terracota 
+    --color-secondary: #6F7F5F; olive accent 
+    --color-accent: #F0E6D8; soft limestone 
+    --color-info: #5A2E25; deep rusty 
+  */
+  
+  --color-primary: #c15b3e;
+  --color-secondary: #6f7f5f; /* olive accent */
+  --color-accent: #f0e6d8; /* soft limestone */
+  --color-info: #5a2e25; /* deep rusty */
   --color-background: #ffffff; /*white */
 
   --color-rosy-copper-50: #f9efec;
