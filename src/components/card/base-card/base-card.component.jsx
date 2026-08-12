@@ -37,7 +37,7 @@ export default BaseCard;
 /* Usage examples — matching the two card types in the screenshot     */
 /* ------------------------------------------------------------------ */
 
-export function FeatureCardExample() {
+export function BaseCardExample() {
   return (
     <BaseCard variant="feature">
       <h3 className="font-bold text-lg mb-2">Discover Places You'll Love</h3>

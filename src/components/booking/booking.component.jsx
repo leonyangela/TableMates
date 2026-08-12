@@ -4,7 +4,7 @@ import { useMapStore } from "../../store/useMapStore";
 import moment from "moment";
 import MapComponent from "../map/map.component";
 import FormComponent from "../reserve-form/reserve-form.component";
-import RestaurantCard from "../card/restaurant-card/restaurant-card.component";
+import RestaurantCard from "../card/item-card/item-card.component";
 
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import FmdBadIcon from "@mui/icons-material/FmdBad";

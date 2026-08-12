@@ -2,11 +2,15 @@ import React from "react";
 import { ButtonExamples } from "../../components/button/base-button.component";
 import WrapperComponent from "../../components/wrapper/wrapper.component";
 import {
-  FeatureCardExample,
+  BaseCardExample,
   FeatureRow,
   TestimonialCardExample,
 } from "../../components/card/base-card/base-card.component";
-import FeatureSection, { FeatureSectionExample, FeatureSectionExample2 } from "../../components/card/featured-card/featured-card.component";
+import FeatureCard, {
+  FeatureCardExample,
+  FeatureCardExample2,
+} from "../../components/card/featured-card/featured-card.component";
+import { ItemCardExample } from "../../components/card/item-card/item-card.component";
 
 const AllComponentsPage = () => {
   return (
@@ -17,11 +21,14 @@ const AllComponentsPage = () => {
         <ButtonExamples />
 
         <h1 className="text-2xl font-bold my-4">Card Examples</h1>
-        <FeatureCardExample />
+        <BaseCardExample />
         <TestimonialCardExample />
 
-        <FeatureSectionExample />
-        <FeatureSectionExample2 />
+        <FeatureCardExample />
+        <FeatureCardExample2 />
+
+        <h1 className="text-2xl font-bold my-4">Restaurant Item Cards</h1>
+        <ItemCardExample />
       </div>
     </WrapperComponent>
   );

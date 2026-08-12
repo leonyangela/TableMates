@@ -10,17 +10,23 @@ import BaseCard from "../base-card/base-card.component";
 /* features — same layout, any content, any page.                      */
 /* ------------------------------------------------------------------ */
 
-export default function FeatureSection({
+export default function FeatureCard({
   eyebrow,
   title,
   subtitle,
+  pretitle,
   features = [], // [{ title: string, body: string }]
 }) {
   return (
-    <section className="mx-auto  py-12">
+    <section
+      className={`mx-auto ${pretitle ? "" : features.length > 0 ? "py-12" : "py-6"}`}
+    >
       <p className="text-primary uppercase font-bold text-lg mb-2">{eyebrow}</p>
       <h2 className="uppercase text-3xl font-bold mb-3">{title}</h2>
-      <p className="text-black mb-8">{subtitle}</p>
+      <h3 className="text-xl font-bold mb-3">{pretitle}</h3>
+      <p className={`text-black ${features.length > 0 ? "mb-8" : ""}`}>
+        {subtitle}
+      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {features.map((f) => (
@@ -38,9 +44,9 @@ export default function FeatureSection({
 /* Usage — matches the uploaded screenshot                            */
 /* ------------------------------------------------------------------ */
 
-export function FeatureSectionExample() {
+export function FeatureCardExample() {
   return (
-    <FeatureSection
+    <FeatureCard
       eyebrow="WHY CHOOSE US?"
       title="DINING MADE SIMPLE"
       subtitle="Finding a great restaurant shouldn't feel like work. We help you discover, compare, and reserve tables effortlessly, so you can focus on the people you're dining with."
@@ -70,9 +76,9 @@ export function FeatureSectionExample() {
 /* Same component, totally different page, no code changes needed     */
 /* ------------------------------------------------------------------ */
 
-export function FeatureSectionExample2() {
+export function FeatureCardExample2() {
   return (
-    <FeatureSection
+    <FeatureCard
       eyebrow="GETTING STARTED"
       title="BOOK IN THREE STEPS"
       subtitle="No app-hopping, no phone calls — reserve your table in under a minute."
