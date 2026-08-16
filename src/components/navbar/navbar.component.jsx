@@ -12,7 +12,7 @@ const Navbar = () => {
 
   const navbarItem = [
     { title: "Home", path: "/", auth: "all" },
-    { title: "Restaurant", path: "/restaurant", auth: "all" },
+    { title: "Restaurant", path: "/restaurants", auth: "all" },
     // { title: "Restaurants", path: "/restaurant", auth: "all" },
     { title: "Login", path: "/login", auth: "guest" },
     { title: "Sign Up", path: "/sign-up", auth: "guest" },

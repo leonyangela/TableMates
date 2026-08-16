@@ -32,6 +32,19 @@ export const useBookingStore = create((set, get) => ({
 
   fetchError: null,
 
+  isBookingModalOpen: false,
+  
+  openBookingModal: (location) =>
+    set({
+      isBookingModalOpen: true,
+      selectedLocation: location,
+      currentBooking: {}, // reset any stale draft
+      bookingPreview: "",
+    }),
+
+  closeBookingModal: () =>
+    set({ isBookingModalOpen: false, selectedLocation: null }),
+
   addBooking: async (location) => {
     const booking = { ...get().currentBooking, location };
     const user = auth.currentUser;
@@ -45,7 +58,7 @@ export const useBookingStore = create((set, get) => ({
     ) {
       return;
     }
-    
+
     if (!user) {
       console.log("User not logged in. Cannot save booking.");
       set({
@@ -119,7 +132,7 @@ export const useBookingStore = create((set, get) => ({
       return [];
     }
 
-    set({ isLoading: true, fetchError: null }); 
+    set({ isLoading: true, fetchError: null });
     try {
       const q = query(
         collection(db, "bookings"),

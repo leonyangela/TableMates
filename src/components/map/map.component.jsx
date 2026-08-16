@@ -5,6 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./map.styles.css";
 import { useMapStore } from "../../store/useMapStore";
+import { useBookingStore } from "../../store/useBookingStore";
 
 const MapComponent = () => {
   const mapRef = useRef(null);
@@ -12,6 +13,7 @@ const MapComponent = () => {
   const mapContainerRef = useRef();
 
   const setSelectedLocation = useMapStore((state) => state.setSelectedLocation);
+  const openBookingModal = useBookingStore((state) => state.openBookingModal);
 
   const { selectedLocation, locations } = useMapStore();
 
@@ -75,6 +77,10 @@ const MapComponent = () => {
           zoom: 16,
           speed: 1.2,
         });
+
+        // Clicking a marker acts like hitting "Reserve" on the card for
+        // that restaurant — opens the same booking modal used elsewhere.
+        openBookingModal(location);
       });
 
       markersRef.current.push(marker);
