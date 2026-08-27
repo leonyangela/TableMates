@@ -16,9 +16,9 @@ const Navbar = () => {
     // { title: "Restaurants", path: "/restaurant", auth: "all" },
     { title: "Login", path: "/login", auth: "guest" },
     { title: "Sign Up", path: "/sign-up", auth: "guest" },
-    {title: "Community Dining", path: "/community-dining", auth: "user"},
+    { title: "Community Dining", path: "/community-dining", auth: "user" },
     { title: "Dining Journey", path: "/dining-journey", auth: "user" },
-    {title: "Components", path: "/components", auth: "all"},
+    { title: "Components", path: "/components", auth: "all" },
   ];
 
   const navLinks = navbarItem.filter((item) => {
@@ -65,7 +65,7 @@ const Navbar = () => {
   }, [menuOpen]);
 
   return (
-    <div ref={navRef} className="relative px-4 sm:px-6 py-4">
+    <div ref={navRef} className="sticky top-0 z-50 bg-white px-4 sm:px-6 py-4">
       <div className="flex flex-row justify-between items-center">
         <Logo />
 
@@ -74,7 +74,7 @@ const Navbar = () => {
           {links.map((item) => (
             <Link
               key={item.title}
-              className="text-center duration-200 transition-all ease-in-out hover:scale-105 hover:text-primary lg:mr-4"
+              className="text-base text-center duration-200 transition-all ease-in-out hover:scale-105 hover:text-primary lg:mr-4"
               to={item.path}
             >
               {item.title}

@@ -36,14 +36,14 @@ export default function ItemCard({
 
       {/* Tag pill, top-left */}
       {tag && (
-        <span className="absolute top-4 left-4 bg-white text-black text-sm font-medium px-4 py-1.5 rounded-full shadow">
+        <span className="absolute top-4 left-4 bg-white text-black text-xs font-medium px-4 py-1.5 rounded-full shadow">
           {tag}
         </span>
       )}
 
       {/* Rating, top-right */}
       {rating && (
-        <span className="absolute top-4 right-4 bg-white/90 text-black text-sm font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+        <span className="absolute top-4 right-4 bg-white/90 text-black text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
           ★ {rating}
           {reviewCount && (
             <span className="text-gray-500 font-normal">({reviewCount})</span>
@@ -56,9 +56,9 @@ export default function ItemCard({
         <div className="absolute inset-0 z-0 h-full bg-linear-to-t from-black to-transparent"></div>
 
         <div className="relative z-10">
-          <h3 className="text-xl font-semibold">{name}</h3>
+          <h3 className="text-base font-semibold">{name}</h3>
           {(priceRange || distance) && (
-            <p className="text-sm text-white/85 mt-1">
+            <p className="text-xs text-white/85 mt-1">
               {priceRange}
               {priceRange && distance && <span className="mx-1.5">·</span>}
               {distance}
@@ -67,7 +67,7 @@ export default function ItemCard({
         </div>
 
         {ctaLabel && (
-          <BaseBtn onClick={onReserve} className="relative z-10 w-full mt-4">
+          <BaseBtn size={"sm"} onClick={onReserve} className="relative z-10 w-full mt-2">
             {ctaLabel}
           </BaseBtn>
         )}

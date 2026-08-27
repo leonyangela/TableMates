@@ -21,7 +21,6 @@ import WrapperComponent from "../../components/wrapper/wrapper.component";
 import FormComponent from "../../components/reserve-form/reserve-form.component";
 import MapComponent from "../../components/map/map.component";
 import FloatingCardImg from "../../components/card/floating-card-image/floating-card-image.component";
-import BookingComponent from "../../components/booking/booking.component";
 import SubmitBtn from "../../components/button/submit-btn.component";
 import FeaturedCard from "../../components/card/featured-card/featured-card.component";
 import TestimoniCardComponent from "../../components/card/testimoni-card/testimoni-card.component";

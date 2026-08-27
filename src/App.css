@@ -33,3 +33,7 @@
   --color-rosy-copper-900: #27120c;
   --color-rosy-copper-950: #1b0d09;
 }
+
+html {
+  scroll-behavior: smooth;
+}

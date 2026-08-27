@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
-import { useBookingStore } from "../../../store/useBookingStore";
+import { useBookingStore } from "../../../../store/useBookingStore";
 
 const TODAY_STR = new Date().toISOString().split("T")[0];
 

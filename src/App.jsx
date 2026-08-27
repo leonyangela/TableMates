@@ -12,6 +12,7 @@ import SignUpPage from "./pages/auth/sign-up.page";
 import DiningJourneyPage from "./pages/dining-journey/dining-journey.page";
 import CommunityDiningPage from "./pages/community-dining/community-dining.page";
 import AllComponentsPage from "./pages/components/all-components.page";
+import ScrollToTop from "./utils/scrollTop.utils";
 
 function App() {
   // const { onAuthListener } = useAuthStore.getState();
@@ -24,6 +25,7 @@ function App() {
 
   return (
     <>
+    <ScrollToTop />
       <Routes>
         <Route index path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />

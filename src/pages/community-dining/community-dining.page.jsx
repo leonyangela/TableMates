@@ -1,7 +1,6 @@
 import React from "react";
 
 import WrapperComponent from "../../components/wrapper/wrapper.component";
-import BookingComponent from "../../components/booking/booking.component";
 import ScrollToTop from "../../components/common/scroll-to-top.component";
 import FeatureCard from "../../components/card/featured-card/featured-card.component";
 import StepsGridCard from "../../components/card/steps-grid-card/steps-grid-card.component";

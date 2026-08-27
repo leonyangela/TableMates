@@ -11,6 +11,7 @@ import FeatureCard, {
   FeatureCardExample2,
 } from "../../components/card/featured-card/featured-card.component";
 import { ItemCardExample } from "../../components/card/item-card/item-card.component";
+import SeedRestaurantsButton from "../../hooks/seeding.hooks";
 
 const AllComponentsPage = () => {
   return (
@@ -29,6 +30,10 @@ const AllComponentsPage = () => {
 
         <h1 className="text-2xl font-bold my-4">Restaurant Item Cards</h1>
         <ItemCardExample />
+
+        <div className="mt-10">
+          <SeedRestaurantsButton />
+        </div>
       </div>
     </WrapperComponent>
   );
