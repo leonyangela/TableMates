@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useMapStore } from "../../store/useMapStore";
+
 import SubmitBtn from "../button/submit-btn.component";
 import Logo from "../logo/logo.component";
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLogin, logout } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const navRef = useRef(null);
+
+  const { setSelectedLocation, selectedLocation } = useMapStore();
 
   const navbarItem = [
     { title: "Home", path: "/", auth: "all" },
@@ -64,6 +69,12 @@ const Navbar = () => {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (location.pathname.includes("/restaurants")) {
+      setSelectedLocation(null);
+    }
+  }, [location.pathname, selectedLocation]);
+  
   return (
     <div ref={navRef} className="sticky top-0 z-50 bg-white px-4 sm:px-6 py-4">
       <div className="flex flex-row justify-between items-center">

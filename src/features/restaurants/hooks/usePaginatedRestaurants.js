@@ -130,6 +130,11 @@ export function usePaginatedRestaurants() {
     [totalPages],
   );
 
+  const getRestaurantById = useCallback(
+    (id) => allRestaurants.find((r) => r.id === id) ?? null,
+    [allRestaurants],
+  );
+
   return {
     restaurants,
     cuisineOptions,
@@ -144,5 +149,6 @@ export function usePaginatedRestaurants() {
     goToNextPage,
     goToPrevPage,
     goToPage,
+    getRestaurantById,
   };
 }

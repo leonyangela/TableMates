@@ -3,6 +3,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useBookingStore } from "../../store/useBookingStore";
 import { useMapStore } from "../../store/useMapStore";
 import { usePaginatedRestaurants } from "../../features/restaurants/hooks/usePaginatedRestaurants";
+import { useReserveFromQueryParam } from "../../features/restaurants/hooks/useReserveFromQueryParam";
+import { useReserveRestaurant } from "../../features/restaurants/hooks/useReserveRestaurant";
+import { MAP_CONTAINER_ID } from "../../utils/scrollTop.utils";
 
 import WrapperComponent from "../../components/wrapper/wrapper.component";
 import BgImageComponent from "../../components/image/bg-image.component";
@@ -33,7 +36,6 @@ const RestaurantPage = () => {
   const {
     isBookingModalOpen,
     selectedLocation,
-    openBookingModal,
     closeBookingModal,
   } = useBookingStore();
 
@@ -51,6 +53,7 @@ const RestaurantPage = () => {
     goToNextPage,
     goToPrevPage,
     goToPage,
+    getRestaurantById,
   } = usePaginatedRestaurants();
 
   // `setSelectedLocation` here is the MAP store's setter (distinct from
@@ -58,6 +61,13 @@ const RestaurantPage = () => {
   // the modal). Calling it is what makes the map fly + highlight the
   // matching marker — see map.component.jsx effect #3.
   const { fetchRestaurants, setSelectedLocation } = useMapStore();
+
+  const reserve = useReserveRestaurant();
+
+  // Handles the ?reserve=<id> deep link from the landing page: fetches
+  // that restaurant directly by doc id, selects it on the map, and opens
+  // the booking modal. Returns clearReserveParam() for use on modal close.
+  const { clearReserveParam } = useReserveFromQueryParam();
 
   // Re-fetch page 1 with new filters whenever cuisine/price/other changes.
   useEffect(() => {
@@ -100,8 +110,12 @@ const RestaurantPage = () => {
     [restaurants],
   );
 
-  const findOriginalById = (id) =>
-    restaurants.find((item) => item.id === id) ?? null;
+  const handleCloseModal = () => {
+    // If we got here via a `?reserve=<id>` deep link, strip it so
+    // refreshing or re-sharing the URL doesn't reopen the modal.
+    clearReserveParam();
+    closeBookingModal();
+  };
 
   return (
     <WrapperComponent>
@@ -126,8 +140,11 @@ const RestaurantPage = () => {
         subtitle="Browse nearby restaurants on the map, compare cuisines, and book the perfect table with confidence."
       />
 
-      <div className="w-full h-140 rounded-2xl overflow-hidden border-2 border-black">
-        {/* <MapComponent restaurants={locations} /> */}
+      <div
+        id={MAP_CONTAINER_ID}
+        className="w-full h-140 rounded-2xl overflow-hidden border-2 border-black"
+      >
+        <MapComponent restaurants={restaurants} />
       </div>
 
       {/* FILTER BAR */}
@@ -173,13 +190,7 @@ const RestaurantPage = () => {
           restaurants={gridItems}
           columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
           onReserve={(r) => {
-            const original = findOriginalById(r.id) ?? r;
-
-            // Mirror the marker-click behavior exactly: select the
-            // restaurant (flies the map + highlights its marker) and open
-            // the booking modal, in that order.
-            setSelectedLocation(original);
-            openBookingModal(original);
+            reserve(getRestaurantById(r.id) ?? r);
           }}
         />
 
@@ -197,7 +208,7 @@ const RestaurantPage = () => {
         {isBookingModalOpen && (
           <BookingFormModal
             restaurant={selectedLocation}
-            onClose={closeBookingModal}
+            onClose={handleCloseModal}
           />
         )}
       </div>

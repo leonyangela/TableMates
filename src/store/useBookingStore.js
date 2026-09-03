@@ -11,11 +11,50 @@ import {
   where,
 } from "firebase/firestore";
 
+const BOOKINGS_COLLECTION = "bookings";
+
+const DEFAULT_BOOKING_FORM = {
+  date: "",
+  time: "",
+  totalSeats: 1,
+  name: "",
+  phone: "",
+  email: "",
+  notes: "",
+  occasion: "",
+  tableVisibility: "private", // "private" | "open_approval" | "open_public"
+  tableDescription: "",
+  type: "restaurant",
+};
+
+/**
+ * Builds the Firestore-ready booking document.
+ *
+ * `location` is stored ONCE, as-is. Every screen that renders a booking
+ * (Dining Journey, the details modal, the map) reads restaurant info from
+ * `booking.location` — nothing gets copied into a second shape.
+ */
+function buildBookingPayload(form, location) {
+  const isOpenTable = form.tableVisibility !== "private";
+  const totalSeats = Number(form.totalSeats) || 1;
+
+  return {
+    ...form,
+    location,
+    userId: auth.currentUser?.uid || null,
+    totalSeats,
+    isOpenTable,
+    seatsJoined: 0, // incremented later by a "join this table" feature
+    seatsAvailable: isOpenTable ? totalSeats : 0,
+    createdAt: serverTimestamp(),
+  };
+}
+
 export const useBookingStore = create((set, get) => ({
   bookings: [],
-  bookingPreview: "",
+  bookingPreview: null, // null | "success" | "error"
 
-  currentBooking: {},
+  currentBooking: DEFAULT_BOOKING_FORM,
 
   setCurrentBooking: (data) =>
     set((state) => ({
@@ -24,90 +63,63 @@ export const useBookingStore = create((set, get) => ({
 
   setBookingPreview: (bookingPreview) => set({ bookingPreview }),
 
+  resetCurrentBooking: () => set({ currentBooking: DEFAULT_BOOKING_FORM }),
+
   isSaving: false,
-
   isLoading: false,
-
   saveError: null,
-
   fetchError: null,
 
   isBookingModalOpen: false,
-  
+  selectedLocation: null,
+
   openBookingModal: (location) =>
     set({
       isBookingModalOpen: true,
       selectedLocation: location,
-      currentBooking: {}, // reset any stale draft
-      bookingPreview: "",
+      currentBooking: DEFAULT_BOOKING_FORM, // reset any stale draft
+      bookingPreview: null,
     }),
 
   closeBookingModal: () =>
     set({ isBookingModalOpen: false, selectedLocation: null }),
 
   addBooking: async (location) => {
-    const booking = { ...get().currentBooking, location };
     const user = auth.currentUser;
-
-    if (
-      !booking.date ||
-      !booking.time ||
-      !booking.guests ||
-      !booking.type ||
-      !booking.location
-    ) {
-      return;
-    }
 
     if (!user) {
       console.log("User not logged in. Cannot save booking.");
-      set({
-        saveError: "You must be logged in to book.",
-        bookingPreview: "error",
-        authReady: false,
-      });
+      set({ saveError: "You must be logged in to book.", bookingPreview: "error" });
       return;
     }
 
     set({ isSaving: true, saveError: null });
 
     try {
-      const docRef = await addDoc(collection(db, "bookings"), {
-        ...booking,
-        userId: user.uid,
-        createdAt: serverTimestamp(),
-      });
-
-      const newBooking = {
-        ...booking,
-        id: docRef.id,
-        userId: user.uid,
-      };
+      const payload = buildBookingPayload(get().currentBooking, location);
+      const docRef = await addDoc(collection(db, BOOKINGS_COLLECTION), payload);
 
       set((state) => ({
-        bookings: [...state.bookings, newBooking],
-        currentBooking: {},
+        bookings: [
+          ...state.bookings,
+          { ...payload, id: docRef.id, createdAt: new Date() }, // local optimistic timestamp; serverTimestamp() resolves once re-fetched
+        ],
+        currentBooking: DEFAULT_BOOKING_FORM,
         bookingPreview: "success",
         isSaving: false,
       }));
     } catch (error) {
       console.error("Error saving booking:", error);
-      set({
-        isSaving: false,
-        saveError: error.message,
-        bookingPreview: "error",
-      });
+      set({ isSaving: false, saveError: error.message, bookingPreview: "error" });
     }
   },
 
   getBookingById: (id) => get().bookings.find((booking) => booking.id === id),
 
-  // Firestore lookup — fetches a single doc directly by ID
   fetchBookingById: async (id) => {
     set({ isLoading: true, fetchError: null });
     try {
-      const docRef = doc(db, "bookings", id);
-      const docSnap = await getDoc(docRef);
+      const docSnap = await getDoc(doc(db, BOOKINGS_COLLECTION, id));
 
       if (!docSnap.exists()) {
         set({ isLoading: false, fetchError: "Booking not found." });
@@ -124,7 +136,6 @@ export const useBookingStore = create((set, get) => ({
     }
   },
 
-  // Firestore query — fetches all bookings for the current user
   fetchUserBookings: async () => {
     const user = auth.currentUser;
     if (!user) {
@@ -134,15 +145,9 @@ export const useBookingStore = create((set, get) => ({
 
     set({ isLoading: true, fetchError: null });
     try {
-      const q = query(
-        collection(db, "bookings"),
-        where("userId", "==", user.uid),
-      );
+      const q = query(collection(db, BOOKINGS_COLLECTION), where("userId", "==", user.uid));
       const querySnapshot = await getDocs(q);
-      const bookings = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const bookings = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
       set({ bookings, isLoading: false });
       return bookings;
