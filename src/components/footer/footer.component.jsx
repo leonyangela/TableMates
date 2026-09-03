@@ -30,7 +30,7 @@ const Footer = () => {
         <SubmitBtn
           text={"Find a Table"}
           className={`text-base text-white border-white transition-all duration-200 ease-out hover:bg-gray-200!`}
-          onClick={() => navigate("/discover")}
+          onClick={() => navigate("/restaurants")}
         ></SubmitBtn>
       </div>
       <div className="w-1/3 text-right">

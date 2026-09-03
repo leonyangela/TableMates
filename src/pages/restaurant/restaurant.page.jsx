@@ -1,267 +1,216 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+
+import { useBookingStore } from "../../store/useBookingStore";
 import { useMapStore } from "../../store/useMapStore";
+import { usePaginatedRestaurants } from "../../features/restaurants/hooks/usePaginatedRestaurants";
+import { useReserveFromQueryParam } from "../../features/restaurants/hooks/useReserveFromQueryParam";
+import { useReserveRestaurant } from "../../features/restaurants/hooks/useReserveRestaurant";
+import { MAP_CONTAINER_ID } from "../../utils/scrollTop.utils";
 
 import WrapperComponent from "../../components/wrapper/wrapper.component";
+import BgImageComponent from "../../components/image/bg-image.component";
+import FeatureCard from "../../components/card/featured-card/featured-card.component";
+import RestaurantGrid from "../../components/card/restaurant-card-compact/restaurant-card-compact.component";
+import PaginationBar from "../../features/restaurants/components/pagination/pagination.component";
+import BookingFormModal from "../../features/restaurants/components/booking-modal/booking-modal.component";
+import FilterRow from "../../features/restaurants/components/filter-row/filter-row.component";
+import MapComponent from "../../components/map/map.component";
 
-import CloseIcon from "@mui/icons-material/Close";
-import { filterAndSortRestaurants } from "../../utils/filterRestaurant.utils";
+import HomeImg1 from "../../assets/Images/homepage-1.jpg";
+
+const OTHER_FILTERS = [
+  { key: null, label: "All" },
+  { key: "openNow", label: "Open Now" },
+  { key: "availableToday", label: "Available Today" },
+  { key: "trending", label: "Trending" },
+  { key: "mostReviewed", label: "Most Reviewed" },
+];
+
+const PRICE_FILTERS = ["$", "$$", "$$$", "$$$$", "$$$$$"];
 
 const RestaurantPage = () => {
-  const { locations } = useMapStore();
+  const [cuisine, setCuisine] = useState(null);
+  const [price, setPrice] = useState(null);
+  const [other, setOther] = useState(null);
 
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("");
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [isTagOpen, setIsTagOpen] = useState(false);
+  const {
+    isBookingModalOpen,
+    selectedLocation,
+    closeBookingModal,
+  } = useBookingStore();
 
-  const dropdownRef = useRef(null);
+  const {
+    restaurants,
+    cuisineOptions,
+    loading,
+    error,
+    currentPage,
+    totalPages,
+    totalCount,
+    hasNextPage,
+    hasPrevPage,
+    applyFilters,
+    goToNextPage,
+    goToPrevPage,
+    goToPage,
+    getRestaurantById,
+  } = usePaginatedRestaurants();
 
-  // Close dropdown on outside click
+  // `setSelectedLocation` here is the MAP store's setter (distinct from
+  // `selectedLocation` above, which belongs to the booking store and feeds
+  // the modal). Calling it is what makes the map fly + highlight the
+  // matching marker — see map.component.jsx effect #3.
+  const { fetchRestaurants, setSelectedLocation } = useMapStore();
+
+  const reserve = useReserveRestaurant();
+
+  // Handles the ?reserve=<id> deep link from the landing page: fetches
+  // that restaurant directly by doc id, selects it on the map, and opens
+  // the booking modal. Returns clearReserveParam() for use on modal close.
+  const { clearReserveParam } = useReserveFromQueryParam();
+
+  // Re-fetch page 1 with new filters whenever cuisine/price/other changes.
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsTagOpen(false);
-      }
+    const filters = {
+      cuisine,
+      price,
+      other,
     };
+    applyFilters(filters);
+    fetchRestaurants(filters); // Fetch restaurants for the map as well
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cuisine, price, other, applyFilters, fetchRestaurants]);
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // All tags
-  const allTags = useMemo(() => {
-    return [...new Set(locations.flatMap((item) => item.tags))].sort();
-  }, [locations]);
-
-  // Price parser
-  const getPriceLevel = (priceRange) => priceRange.split("-")[0].trim().length;
-
-  // Toggle tag
-  const handleTagToggle = (tag) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
-  };
-
-  // Remove tag chip
-  const removeTag = (tag) => {
-    setSelectedTags((prev) => prev.filter((t) => t !== tag));
-  };
-
-  // Active filter check
-  const isFilterActive =
-    search.length > 0 || sortBy.length > 0 || selectedTags.length > 0;
-
-  // Filter + sort logic
-  const filteredRestaurants = useMemo(
-    () =>
-      filterAndSortRestaurants({
-        restaurants: locations,
-        search,
-        selectedTags,
-        sortBy,
-      }),
-    [locations, search, selectedTags, sortBy],
+  const priceOptions = useMemo(
+    () => [
+      { key: null, label: "All" },
+      ...PRICE_FILTERS.map((p) => ({ key: p, label: p })),
+    ],
+    [],
   );
+
+  const otherOptions = useMemo(
+    () => OTHER_FILTERS.map((f) => ({ key: f.key, label: f.label })),
+    [],
+  );
+
+  // Map location data onto the shape ItemCard / RestaurantGrid expect.
+  const gridItems = useMemo(
+    () =>
+      restaurants.map((item) => ({
+        id: item.id,
+        image: item.image,
+        tag: item.category,
+        name: item.name,
+        rating: item.rating,
+        reviewCount: item.reviewCount,
+        priceRange: item.price_range,
+        distance: item.distance,
+      })),
+    [restaurants],
+  );
+
+  const handleCloseModal = () => {
+    // If we got here via a `?reserve=<id>` deep link, strip it so
+    // refreshing or re-sharing the URL doesn't reopen the modal.
+    clearReserveParam();
+    closeBookingModal();
+  };
 
   return (
     <WrapperComponent>
-      {/* HEADER */}
-      <div className="py-10 text-center">
-        <h1 className="text-4xl font-bold">Our Restaurants</h1>
-        <p className="text-gray-500 mt-2 max-w-2xl mx-auto">
-          Keep exploring. Discover trending spots, hidden gems, and local
-          favourites.
-        </p>
+      <BgImageComponent
+        imageURL={HomeImg1}
+        additionalClassName={`h-[40vh]! rounded-4xl justify-end items-start px-10 py-8`}
+      >
+        <div className="w-full text-left z-20 relative text-white">
+          <h1 className="text-2xl uppercase font-bold">
+            Discover Great Places to Dine
+          </h1>
+          <h1 className="text-lg">
+            Check out restaurants that match your taste, explore live
+            availability, and reserve your table in just a few taps.
+          </h1>
+        </div>
+      </BgImageComponent>
+
+      <FeatureCard
+        eyebrow="restaurants"
+        title="Find restaurants around you"
+        subtitle="Browse nearby restaurants on the map, compare cuisines, and book the perfect table with confidence."
+      />
+
+      <div
+        id={MAP_CONTAINER_ID}
+        className="w-full h-140 rounded-2xl overflow-hidden border-2 border-black"
+      >
+        <MapComponent restaurants={restaurants} />
       </div>
 
       {/* FILTER BAR */}
-      <div className="bg-white border rounded-2xl shadow-sm p-4 mb-8 z-20">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* SEARCH */}
-          <input
-            type="text"
-            placeholder="Search restaurants or category..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 border rounded-lg px-4 py-2 outline-none"
-          />
+      <div className="my-6 sticky top-16 bg-white z-20 px-4 py-2">
+        <FilterRow
+          label="Cuisine"
+          options={cuisineOptions}
+          active={cuisine}
+          onSelect={setCuisine}
+        />
 
-          {/* Clear Sort only */}
-          {/* {sortBy && (
-            <button
-              onClick={() => setSortBy("")}
-              className="bg-gray-200 text-black px-3 py-2 rounded-lg hover:bg-gray-300 transition text-sm"
-            >
-              Clear sort ✕
-            </button>
-          )} */}
+        <FilterRow
+          label="Price"
+          options={priceOptions}
+          active={price}
+          onSelect={setPrice}
+        />
 
-          {/* TAG DROPDOWN */}
-          <div className="relative w-full lg:w-64" ref={dropdownRef}>
-            <button
-              onClick={() => setIsTagOpen(!isTagOpen)}
-              className="w-full border rounded-lg px-4 py-2 flex justify-between items-center"
-            >
-              <span className="text-sm">
-                {selectedTags.length > 0
-                  ? `${selectedTags.length} tags selected`
-                  : "Filter by tags"}
-              </span>
-              <span>▾</span>
-            </button>
+        <FilterRow
+          label="Other"
+          options={otherOptions}
+          active={other}
+          onSelect={setOther}
+        />
 
-            {isTagOpen && (
-              <div className="absolute mt-2 w-full bg-white border rounded-lg shadow-lg max-h-64 overflow-auto z-50">
-                {allTags.map((tag) => (
-                  <label
-                    key={tag}
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedTags.includes(tag)}
-                      onChange={() => handleTagToggle(tag)}
-                    />
-                    <span className="text-sm">{tag}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* SORT */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="border rounded-lg px-4 py-2 text-sm"
-          >
-            <option value="" hidden>
-              Sort by price
-            </option>
-            <option value="low">Price: Low to High</option>
-            <option value="high">Price: High to Low</option>
-          </select>
-
-          {/* ACTION BUTTONS */}
-          <div className="flex gap-2">
-            {/* Clear Sort only */}
-            {sortBy && (
-              <button
-                onClick={() => setSortBy("")}
-                className="bg-gray-200 text-black px-3 py-2 rounded-lg hover:bg-gray-300 transition text-sm"
-              >
-                Clear sort ✕
-              </button>
-            )}
-
-            {/* Clear All */}
-            {isFilterActive && (
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setSortBy("");
-                  setSelectedTags([]);
-                }}
-                className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition text-sm"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
+        {/* RESULT COUNT */}
+        <div className="text-gray-500 text-right text-sm">
+          {loading
+            ? "Loading…"
+            : `${totalCount} restaurant${totalCount !== 1 ? "s" : ""} found`}
         </div>
-
-        {/* SELECTED TAG CHIPS */}
-        {selectedTags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {selectedTags.map((tag) => (
-              <span
-                key={tag}
-                className="flex items-center gap-2 bg-black text-white text-xs px-3 py-1 rounded-full"
-              >
-                {tag}
-                <button
-                  onClick={() => removeTag(tag)}
-                  className="hover:cursor-pointer hover:text-primary"
-                >
-                  <CloseIcon fontSize="small" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* RESULT COUNT */}
-      <div className="mb-6 text-gray-500">
-        {filteredRestaurants.length} restaurant
-        {filteredRestaurants.length !== 1 ? "s" : ""} found
-      </div>
+      {error && (
+        <div className="text-red-500 text-sm px-4 py-2">
+          Something went wrong loading restaurants. Please try again.
+        </div>
+      )}
 
       {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-        {filteredRestaurants.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition"
-          >
-            {/* IMAGE */}
-            <div className="relative h-52">
-              <img
-                src={item.image}
-                alt={item.name}
-                className="w-full h-full object-cover"
-              />
+      <div className="pb-10">
+        <RestaurantGrid
+          restaurants={gridItems}
+          columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
+          onReserve={(r) => {
+            reserve(getRestaurantById(r.id) ?? r);
+          }}
+        />
 
-              <span className="absolute top-3 left-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
-                {item.category}
-              </span>
+        <PaginationBar
+          currentPage={currentPage}
+          totalPages={totalPages}
+          hasNextPage={hasNextPage}
+          hasPrevPage={hasPrevPage}
+          loading={loading}
+          onNext={goToNextPage}
+          onPrev={goToPrevPage}
+          onGoToPage={goToPage}
+        />
 
-              <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap">
-                {item.tags.slice(0, 2).map((tag) => (
-                  <span
-                    key={tag}
-                    className="bg-white text-xs px-2 py-1 rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* CONTENT */}
-            <div className="p-5">
-              <h2 className="font-bold text-xl">{item.name}</h2>
-
-              <p className="text-gray-500 text-sm mt-2 line-clamp-2">
-                {item.short_description}
-              </p>
-
-              {/* FEATURES */}
-              <div className="flex flex-wrap gap-2 mt-4">
-                {item.features.slice(0, 3).map((f) => (
-                  <span
-                    key={f}
-                    className="text-xs bg-gray-100 px-2 py-1 rounded-full"
-                  >
-                    {f}
-                  </span>
-                ))}
-              </div>
-
-              {/* FOOTER */}
-              <div className="mt-5 flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">
-                  {item.price_range}
-                </span>
-
-                <button className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition">
-                  View
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+        {isBookingModalOpen && (
+          <BookingFormModal
+            restaurant={selectedLocation}
+            onClose={handleCloseModal}
+          />
+        )}
       </div>
     </WrapperComponent>
   );
