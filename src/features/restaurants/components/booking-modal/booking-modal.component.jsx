@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
-import { useBookingStore } from "../../../../store/useBookingStore";
+import { DEFAULT_BOOKING_FORM, useBookingStore } from "../../../../store/useBookingStore";
 
 const TODAY_STR = new Date().toISOString().split("T")[0];
 
@@ -36,19 +36,6 @@ const TABLE_VISIBILITY_OPTIONS = [
   },
 ];
 
-const DEFAULT_FORM = {
-  date: "",
-  time: "",
-  totalSeats: 1,
-  name: "",
-  phone: "",
-  email: "",
-  notes: "",
-  occasion: "",
-  tableVisibility: "private",
-  tableDescription: "",
-};
-
 /** "14:00" -> "2:00 PM" */
 const formatTimeLabel = (time24) => {
   const [h, m] = time24.split(":").map(Number);
@@ -58,17 +45,40 @@ const formatTimeLabel = (time24) => {
 };
 
 /**
- * Booking form popup shown when a restaurant's "Reserve" button is clicked.
+ * Booking form popup shown when a restaurant's "Reserve" button is clicked
+ * (create mode), or when a host clicks "Edit" on their own open table from
+ * the community dining page (edit mode).
  *
  * Props:
  *  - restaurant: { id, name, image, tag, priceRange, ... } | null
  *  - onClose: () => void
+ *  - initialValues: existing table doc to prefill from, or null for a new
+ *    booking. Shape matches what BookingFormModal itself submits (date,
+ *    time, totalSeats, yourSeats, tableVisibility, tableDescription, name,
+ *    phone, email, notes, occasion, otherOccasion) plus an `id`.
+ *  - isEditing: true when this is an existing table being edited rather
+ *    than a brand-new reservation.
  */
-const BookingFormModal = ({ restaurant, onClose }) => {
-  const [form, setForm] = useState(DEFAULT_FORM);
+const BookingFormModal = ({
+  restaurant,
+  onClose,
+  initialValues = null,
+  isEditing = false,
+}) => {
+  const [form, setForm] = useState(() =>
+    initialValues
+      ? { ...DEFAULT_BOOKING_FORM, ...initialValues }
+      : DEFAULT_BOOKING_FORM,
+  );
 
-  const { setCurrentBooking, addBooking, isSaving, saveError, bookingPreview } =
-    useBookingStore();
+  const {
+    setCurrentBooking,
+    addBooking,
+    updateBooking,
+    isSaving,
+    saveError,
+    bookingPreview,
+  } = useBookingStore();
 
   // Only offer times the restaurant is actually open, and if the chosen
   // date is today, drop any slots that have already passed.
@@ -83,6 +93,29 @@ const BookingFormModal = ({ restaurant, onClose }) => {
 
   const isOpenTable = form.tableVisibility !== "private";
 
+  // Seats you're keeping for yourself vs. seats left for other diners to
+  // claim. This is only meaningful once the table is opened — for a
+  // private booking every seat is "yours" by definition.
+  const totalSeatsNum = Number(form.totalSeats) || 0;
+  const yourSeatsNum = isOpenTable
+    ? Math.min(Number(form.yourSeats) || 0, totalSeatsNum)
+    : totalSeatsNum;
+  const seatsAvailable = totalSeatsNum - yourSeatsNum;
+
+  // When editing an already-open table, seats other diners have already
+  // joined must not be edited away. `initialValues.seatsAvailable` is the
+  // count still open before this edit, so
+  // occupied = original totalSeats - original seatsAvailable (yourSeats +
+  // anyone who already joined). We floor totalSeats at that number so an
+  // edit can't strand someone who already has a seat.
+  const minTotalSeats = isEditing
+    ? Math.max(
+        1,
+        Number(initialValues?.totalSeats ?? 1) -
+          Number(initialValues?.seatsAvailable ?? 0),
+      )
+    : 1;
+
   const handleChange = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -92,21 +125,57 @@ const BookingFormModal = ({ restaurant, onClose }) => {
     setForm((prev) => ({ ...prev, date: e.target.value, time: "" }));
   };
 
+  const handleTotalSeatsChange = (e) => {
+    const nextTotal = Number(e.target.value);
+    setForm((prev) => ({
+      ...prev,
+      totalSeats: e.target.value,
+      // Keep "your seats" from silently exceeding the new total.
+      yourSeats:
+        Number(prev.yourSeats) > nextTotal ? nextTotal : prev.yourSeats,
+    }));
+  };
+
+  const handleYourSeatsChange = (e) => {
+    const nextYourSeats =
+      e.target.value === ""
+        ? ""
+        : Math.min(Number(e.target.value), totalSeatsNum);
+    setForm((prev) => ({ ...prev, yourSeats: nextYourSeats }));
+  };
+
   const handleVisibilityChange = (key) => () =>
-    setForm((prev) => ({ ...prev, tableVisibility: key }));
+    setForm((prev) => ({
+      ...prev,
+      tableVisibility: key,
+      // Going private again means the whole table is yours.
+      yourSeats: key === "private" ? prev.totalSeats : prev.yourSeats,
+    }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Push the current form values into the store, then let addBooking
-    // merge in the restaurant snapshot + write to Firestore.
-    setCurrentBooking({
+    const payload = {
       ...form,
-      totalSeats: Number(form.totalSeats),
+      totalSeats: totalSeatsNum,
+      yourSeats: yourSeatsNum,
       type: "restaurant",
-    });
+    };
 
-    await addBooking(restaurant);
+    setCurrentBooking(payload);
+
+    if (isEditing) {
+      // Updates the existing table doc in place. `seatsAvailable` is
+      // recomputed from the new totalSeats/yourSeats here rather than
+      // trusting the form, since it must stay consistent with whatever
+      // seats are already occupied by other diners.
+      await updateBooking(initialValues.id, {
+        ...payload,
+        seatsAvailable: isOpenTable ? seatsAvailable : 0,
+      });
+    } else {
+      await addBooking(restaurant);
+    }
   };
 
   const handleBackdropClick = (e) => {
@@ -125,7 +194,7 @@ const BookingFormModal = ({ restaurant, onClose }) => {
         <div className="flex items-start justify-between px-6 pt-6">
           <div>
             <p className="text-xs uppercase text-gray-400 tracking-wide">
-              Reserve a table
+              {isEditing ? "Edit your table" : "Reserve a table"}
             </p>
             <h2 className="text-xl font-bold mt-1">{restaurant.name}</h2>
             {restaurant.tag && (
@@ -145,22 +214,31 @@ const BookingFormModal = ({ restaurant, onClose }) => {
           /* SUCCESS STATE */
           <div className="px-6 py-10 text-center">
             <h3 className="text-lg font-bold">
-              Reservation at {restaurant.name} requested!
+              {isEditing
+                ? `Table at ${restaurant.name} updated!`
+                : `Reservation at ${restaurant.name} requested!`}
             </h3>
             <p className="text-gray-500 text-sm mt-2">
-              We've sent your request for {form.totalSeats} seat
-              {form.totalSeats !== 1 ? "s" : ""} on {form.date} at{" "}
-              {form.time ? formatTimeLabel(form.time) : ""}. View full
-              details and track your reservation status under your Dining
-              Journey.
+              {isEditing
+                ? "Your changes have been saved. "
+                : `We've sent your request for ${form.totalSeats} seat${
+                    form.totalSeats !== 1 ? "s" : ""
+                  } on ${form.date} at ${
+                    form.time ? formatTimeLabel(form.time) : ""
+                  }. `}
+              View full details and track your reservation status under your
+              Dining Journey.
             </p>
             {isOpenTable && (
               <p className="text-gray-500 text-sm mt-2">
-                Since you opened this table, other diners can now find and{" "}
+                You're keeping {yourSeatsNum} seat
+                {yourSeatsNum !== 1 ? "s" : ""} for yourself, leaving{" "}
+                {seatsAvailable} seat{seatsAvailable !== 1 ? "s" : ""} open.
+                Other diners can now find and{" "}
                 {form.tableVisibility === "open_public"
                   ? "join it instantly"
                   : "request to join it"}{" "}
-                from the Dining Journey feed.
+                from the Dining Journey feed until it fills up.
               </p>
             )}
             <button
@@ -217,13 +295,19 @@ const BookingFormModal = ({ restaurant, onClose }) => {
                 </label>
                 <input
                   type="number"
-                  min={1}
+                  min={minTotalSeats}
                   max={20}
                   required
                   value={form.totalSeats}
-                  onChange={handleChange("totalSeats")}
+                  onChange={handleTotalSeatsChange}
                   className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
                 />
+                {isEditing && minTotalSeats > 1 && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Can't go below {minTotalSeats} — other diners already
+                    hold seats at this table.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">
@@ -246,6 +330,23 @@ const BookingFormModal = ({ restaurant, onClose }) => {
                 </select>
               </div>
             </div>
+
+            {/* Custom Occasion */}
+            {form.occasion.toLowerCase() == "other" && (
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Your occasion
+                </label>
+                <textarea
+                  rows={1}
+                  required
+                  value={form.otherOccasion}
+                  onChange={handleChange("otherOccasion")}
+                  placeholder="e.g. Board Game Night, Casual Lunch, etc."
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-xs text-gray-500 mb-2">
@@ -286,23 +387,52 @@ const BookingFormModal = ({ restaurant, onClose }) => {
             </div>
 
             {isOpenTable && (
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">
-                  Short description about your table
-                </label>
-                <textarea
-                  rows={2}
-                  required
-                  value={form.tableDescription}
-                  onChange={handleChange("tableDescription")}
-                  placeholder="e.g. Casual birthday dinner, open to fellow foodies!"
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  This is what other diners will see in the Dining Journey
-                  feed before they join.
-                </p>
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Your seats (for your own party)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={totalSeatsNum || 1}
+                      required
+                      value={form.yourSeats}
+                      onChange={handleYourSeatsChange}
+                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                    />
+                  </div>
+                  <div>
+                    <p className="block text-xs text-gray-500">
+                      Seats available for others
+                    </p>
+                    <div className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50">
+                      <span className="block font-semibold">
+                        {seatsAvailable}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    Short description about your table
+                  </label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={form.tableDescription}
+                    onChange={handleChange("tableDescription")}
+                    placeholder="e.g. Casual birthday dinner, open to fellow foodies!"
+                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    This is what other diners will see in the Dining Journey
+                    feed before they join.
+                  </p>
+                </div>
+              </>
             )}
 
             <div>
@@ -370,7 +500,11 @@ const BookingFormModal = ({ restaurant, onClose }) => {
               disabled={isSaving}
               className="w-full bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? "Submitting…" : "Confirm Reservation"}
+              {isSaving
+                ? "Submitting…"
+                : isEditing
+                  ? "Save Changes"
+                  : "Confirm Reservation"}
             </button>
           </form>
         )}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 
 import { useBookingStore } from "../../store/useBookingStore";
 import { useMapStore } from "../../store/useMapStore";
@@ -17,6 +18,7 @@ import FilterRow from "../../features/restaurants/components/filter-row/filter-r
 import MapComponent from "../../components/map/map.component";
 
 import HomeImg1 from "../../assets/Images/homepage-1.jpg";
+import { isBookingPast } from "../../utils/checkPastBooking";
 
 const OTHER_FILTERS = [
   { key: null, label: "All" },
@@ -33,10 +35,23 @@ const RestaurantPage = () => {
   const [price, setPrice] = useState(null);
   const [other, setOther] = useState(null);
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Set once, when we arrive via "Edit" from the community dining page.
+  // Kept separate from useBookingStore's selectedLocation because it also
+  // needs to survive until the restaurant list has actually loaded (see
+  // the effect below), not just until the modal opens.
+  const [editBooking] = useState(location.state?.editBooking ?? null);
+  const [highlightLocationId] = useState(
+    location.state?.highlightLocationId ?? null,
+  );
+
   const {
     isBookingModalOpen,
     selectedLocation,
     closeBookingModal,
+    openBookingModal,
   } = useBookingStore();
 
   const {
@@ -60,7 +75,8 @@ const RestaurantPage = () => {
   // `selectedLocation` above, which belongs to the booking store and feeds
   // the modal). Calling it is what makes the map fly + highlight the
   // matching marker — see map.component.jsx effect #3.
-  const { fetchRestaurants, setSelectedLocation } = useMapStore();
+  const { fetchRestaurants, setSelectedLocation: setMapSelectedLocation } =
+    useMapStore();
 
   const reserve = useReserveRestaurant();
 
@@ -80,6 +96,33 @@ const RestaurantPage = () => {
     fetchRestaurants(filters); // Fetch restaurants for the map as well
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cuisine, price, other, applyFilters, fetchRestaurants]);
+
+  // EDIT FLOW: once we have an editBooking payload (from navigating here
+  // with `navigate("/restaurants", { state: { editBooking, highlightLocationId } })`),
+  // open the booking modal pre-loaded with that table's restaurant and
+  // highlight it on the map. We wait for `restaurants` so we can pull the
+  // full restaurant record (image, tag, time_opening, etc.) rather than
+  // relying on the thinner `location` snapshot stored on the table doc.
+ useEffect(() => {
+  if (!editBooking) return;
+  if (isBookingPast(editBooking)) {
+    // Nothing to edit — silently drop the intent rather than opening a
+    // modal for an event that's already happened.
+    navigate(location.pathname, { replace: true, state: {} });
+    return;
+  }
+
+  const targetId = highlightLocationId ?? editBooking.location?.id;
+  const fullRestaurant = targetId ? getRestaurantById(targetId) : null;
+  const restaurantForModal = fullRestaurant ?? editBooking.location;
+
+  if (!restaurantForModal) return;
+
+  setMapSelectedLocation(restaurantForModal);
+  openBookingModal(restaurantForModal);
+  navigate(location.pathname, { replace: true, state: {} });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [editBooking, restaurants]);
 
   const priceOptions = useMemo(
     () => [
@@ -144,7 +187,7 @@ const RestaurantPage = () => {
         id={MAP_CONTAINER_ID}
         className="w-full h-140 rounded-2xl overflow-hidden border-2 border-black"
       >
-        <MapComponent restaurants={restaurants} />
+        {/* <MapComponent restaurants={restaurants} /> */}
       </div>
 
       {/* FILTER BAR */}
@@ -209,6 +252,8 @@ const RestaurantPage = () => {
           <BookingFormModal
             restaurant={selectedLocation}
             onClose={handleCloseModal}
+            initialValues={editBooking}
+            isEditing={Boolean(editBooking)}
           />
         )}
       </div>

@@ -10,7 +10,8 @@ import BaseBtn from "../../components/button/base-button.component";
 import { useOpenTableStore } from "../../store/useOpenTableStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import OpenTableCard from "../../features/dining-journey/open-table/open-table-card/open-table-card.component";
-import JoinTableModal from "../../features/dining-journey/open-table/join-table-modal/join-table-modal.component";
+import BookingDetailsModal from "../../features/booking/booking-details-modal/booking-details-modal.component";
+import { isBookingPast } from "../../utils/checkPastBooking";
 
 const CommunityDiningPage = () => {
   const navigate = useNavigate();
@@ -22,9 +23,9 @@ const CommunityDiningPage = () => {
 
   const { user, authReady } = useAuthStore();
 
-  const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedTable, setSelectedTable] = useState(null); // drives the one shared modal
   const [search, setSearch] = useState("");
-  const [filterApproval, setFilterApproval] = useState("all"); // "all" | "approval" | "public"
+  const [filterApproval, setFilterApproval] = useState("all");
 
   useEffect(() => {
     if (authReady) {
@@ -35,7 +36,20 @@ const CommunityDiningPage = () => {
   const filteredTables = useMemo(() => {
     let result = [...openTables];
 
-    // Filter by approval type
+    result = result.filter((table) => !isBookingPast(table));
+
+    // Hide tables the current user has already joined (or requested and
+    // been approved for) — once you're in, it belongs in your Dining
+    // Journey, not the browse feed. Owners still see their own table here
+    // (with the Edit action), since hosting isn't the same as joining.
+    if (user) {
+      result = result.filter((table) => {
+        const isOwner = table.userId === user.uid;
+        const hasJoined = (table.joinedUserIds || []).includes(user.uid);
+        return isOwner || !hasJoined;
+      });
+    }
+
     if (filterApproval !== "all") {
       result = result.filter(
         (table) =>
@@ -46,7 +60,6 @@ const CommunityDiningPage = () => {
       );
     }
 
-    // Search by restaurant name or address
     if (search.trim()) {
       const query = search.toLowerCase();
       result = result.filter(
@@ -56,11 +69,10 @@ const CommunityDiningPage = () => {
       );
     }
 
-    // Sort by nearest date
     result.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     return result;
-  }, [openTables, filterApproval, search]);
+  }, [openTables, filterApproval, search, user]);
 
   const handleCreateTable = () => {
     if (!user) {
@@ -68,6 +80,15 @@ const CommunityDiningPage = () => {
       return;
     }
     navigate("/restaurants");
+  };
+
+  const handleEditClick = (table) => {
+    navigate("/restaurants", {
+      state: {
+        editBooking: table,
+        highlightLocationId: table.location?.id ?? table.id,
+      },
+    });
   };
 
   return (
@@ -102,9 +123,7 @@ const CommunityDiningPage = () => {
         ]}
       />
 
-      {/* Main Content */}
       <div className="mt-12">
-        {/* Search + Filter */}
         <div className="flex flex-col md:flex-row gap-3 mb-6">
           <div className="relative flex-1">
             <svg
@@ -127,7 +146,6 @@ const CommunityDiningPage = () => {
             />
           </div>
 
-          {/* Filter by approval type */}
           <div className="flex gap-2">
             {[
               { id: "all", label: "All Tables" },
@@ -149,14 +167,12 @@ const CommunityDiningPage = () => {
           </div>
         </div>
 
-        {/* Loading */}
         {isLoading && (
           <div className="py-20 text-center">
             <p className="text-gray-500">Discovering open tables...</p>
           </div>
         )}
 
-        {/* Error */}
         {fetchError && (
           <div className="py-16 text-center border border-gray-200 rounded-2xl">
             <h2 className="font-semibold text-lg">Something went wrong</h2>
@@ -170,21 +186,24 @@ const CommunityDiningPage = () => {
           </div>
         )}
 
-        {/* Tables List */}
         {!isLoading && !fetchError && (
           <>
             {filteredTables.length > 0 ? (
               <div className="space-y-5 mb-12">
-                {filteredTables.map((table) => (
-                  <OpenTableCard
-                    key={table.id}
-                    table={table}
-                    onJoinClick={() => setSelectedTable(table)}
-                  />
-                ))}
+                {filteredTables.map((table) => {
+                  const isOwner = Boolean(user) && table.userId === user.uid;
+                  return (
+                    <OpenTableCard
+                      key={table.id}
+                      table={table}
+                      isOwner={isOwner}
+                      onJoinClick={() => setSelectedTable(table)}
+                      onEditClick={() => setSelectedTable(table)}
+                    />
+                  );
+                })}
               </div>
             ) : (
-              /* Empty state with CTA */
               <div className="text-center py-20 border border-gray-200 rounded-2xl">
                 <div className="text-4xl mb-4">🍽️</div>
                 <h2 className="text-xl font-semibold">
@@ -208,7 +227,6 @@ const CommunityDiningPage = () => {
           </>
         )}
 
-        {/* CTA Section */}
         {filteredTables.length > 0 && (
           <div className="mt-12 mb-6 px-8 py-6 border-2 border-gray-300 rounded-2xl bg-gray-50">
             <FeatureCard
@@ -219,7 +237,6 @@ const CommunityDiningPage = () => {
           </div>
         )}
 
-        {/* Create table button */}
         {filteredTables.length > 0 && (
           <div>
             <h3 className="text-2xl font-bold uppercase mb-2">Want to host?</h3>
@@ -232,10 +249,10 @@ const CommunityDiningPage = () => {
         )}
       </div>
 
-      {/* Join Table Modal */}
-      <JoinTableModal
-        table={selectedTable}
+      <BookingDetailsModal
+        booking={selectedTable}
         onClose={() => setSelectedTable(null)}
+        onEdit={handleEditClick}
       />
     </WrapperComponent>
   );

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import moment from "moment";
+import { useNavigate } from "react-router";
 
 import WrapperComponent from "../../components/wrapper/wrapper.component";
 import FeatureCard from "../../components/card/featured-card/featured-card.component";
-import BookingDetailsModal from "../../features/booking/booking-details-map/booking-details-map.component";
+import BookingDetailsModal from "../../features/booking/booking-details-modal/booking-details-modal.component";
 
 import { useBookingStore } from "../../store/useBookingStore";
 import { useAuthStore } from "../../store/useAuthStore";
 
 const DiningJourneyPage = () => {
+  const navigate = useNavigate();
   const bookings = useBookingStore((state) => state.bookings);
   const fetchUserBookings = useBookingStore((state) => state.fetchUserBookings);
   const isLoading = useBookingStore((state) => state.isLoading);
@@ -20,7 +22,7 @@ const DiningJourneyPage = () => {
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ type: "all", sort: "newest" });
-  const [selectedBooking, setSelectedBooking] = useState(null); // drives the details modal
+  const [selectedTable, setSelectedTable] = useState(null);
 
   useEffect(() => {
     if (authReady && user) {
@@ -57,7 +59,9 @@ const DiningJourneyPage = () => {
     let result = [...bookings];
 
     if (activeStatus !== "all") {
-      result = result.filter((booking) => getBookingStatus(booking) === activeStatus);
+      result = result.filter(
+        (booking) => getBookingStatus(booking) === activeStatus,
+      );
     }
 
     if (filters.type !== "all") {
@@ -97,7 +101,18 @@ const DiningJourneyPage = () => {
     { id: "cancelled", label: "Cancelled" },
   ];
 
-  const bookingTypes = [...new Set(bookings.map((booking) => booking.type).filter(Boolean))];
+  const bookingTypes = [
+    ...new Set(bookings.map((booking) => booking.type).filter(Boolean)),
+  ];
+
+  const handleEditClick = (table) => {
+    navigate("/restaurants", {
+      state: {
+        editBooking: table,
+        highlightLocationId: table.location?.id ?? table.id,
+      },
+    });
+  };
 
   const clearFilters = () => {
     setFilters({ type: "all", sort: "newest" });
@@ -140,10 +155,18 @@ const DiningJourneyPage = () => {
           <button
             onClick={() => setShowFilters((prev) => !prev)}
             className={`h-12 px-5 rounded-xl border flex items-center justify-center gap-2 transition ${
-              showFilters ? "bg-black text-white border-black" : "bg-white border-gray-300 hover:border-black"
+              showFilters
+                ? "bg-black text-white border-black"
+                : "bg-white border-gray-300 hover:border-black"
             }`}
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M4 6h16" />
               <path d="M7 12h10" />
               <path d="M10 18h4" />
@@ -157,11 +180,15 @@ const DiningJourneyPage = () => {
           <div className="border border-gray-200 rounded-2xl p-5 mb-6 bg-white shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium mb-2">Booking type</label>
+                <label className="block text-sm font-medium mb-2">
+                  Booking type
+                </label>
 
                 <select
                   value={filters.type}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, type: e.target.value }))
+                  }
                   className="w-full h-11 px-3 rounded-lg border border-gray-300 bg-white"
                 >
                   <option value="all">All types</option>
@@ -174,11 +201,15 @@ const DiningJourneyPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Sort by</label>
+                <label className="block text-sm font-medium mb-2">
+                  Sort by
+                </label>
 
                 <select
                   value={filters.sort}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, sort: e.target.value }))}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, sort: e.target.value }))
+                  }
                   className="w-full h-11 px-3 rounded-lg border border-gray-300 bg-white"
                 >
                   <option value="newest">Newest first</option>
@@ -188,7 +219,10 @@ const DiningJourneyPage = () => {
             </div>
 
             <div className="flex justify-end mt-5">
-              <button onClick={clearFilters} className="text-sm font-medium underline underline-offset-4">
+              <button
+                onClick={clearFilters}
+                className="text-sm font-medium underline underline-offset-4"
+              >
                 Clear filters
               </button>
             </div>
@@ -202,7 +236,9 @@ const DiningJourneyPage = () => {
               key={tab.id}
               onClick={() => setActiveStatus(tab.id)}
               className={`pb-4 whitespace-nowrap text-sm font-medium border-b-2 transition ${
-                activeStatus === tab.id ? "border-black text-black" : "border-transparent text-gray-500 hover:text-black"
+                activeStatus === tab.id
+                  ? "border-black text-black"
+                  : "border-transparent text-gray-500 hover:text-black"
               }`}
             >
               {tab.label}
@@ -227,7 +263,10 @@ const DiningJourneyPage = () => {
             <div className="text-3xl mb-3">!</div>
             <h2 className="font-semibold text-lg">Something went wrong</h2>
             <p className="text-gray-500 mt-1">{fetchError}</p>
-            <button onClick={fetchUserBookings} className="mt-5 px-5 py-2.5 rounded-lg bg-black text-white text-sm">
+            <button
+              onClick={fetchUserBookings}
+              className="mt-5 px-5 py-2.5 rounded-lg bg-black text-white text-sm"
+            >
               Try again
             </button>
           </div>
@@ -249,9 +288,15 @@ const DiningJourneyPage = () => {
                       <div className="flex flex-col md:flex-row">
                         <div className="w-full md:w-64 h-52 md:h-auto shrink-0 bg-gray-100">
                           {location?.image ? (
-                            <img src={location.image} alt={location?.name} className="w-full h-full object-cover" />
+                            <img
+                              src={location.image}
+                              alt={location?.name}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              No image
+                            </div>
                           )}
                         </div>
 
@@ -265,8 +310,14 @@ const DiningJourneyPage = () => {
                                     ? "Dining experience"
                                     : "Cancelled booking"}
                               </p>
-                              <h2 className="text-xl md:text-2xl font-semibold">{location?.name || "Unknown venue"}</h2>
-                              {location?.address && <p className="text-sm text-gray-500 mt-1">{location.address}</p>}
+                              <h2 className="text-xl md:text-2xl font-semibold">
+                                {location?.name || "Unknown venue"}
+                              </h2>
+                              {location?.address && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                  {location.address}
+                                </p>
+                              )}
                             </div>
 
                             <span
@@ -285,31 +336,44 @@ const DiningJourneyPage = () => {
                           <div className="flex flex-wrap gap-x-6 gap-y-3 mt-6 text-sm">
                             <div>
                               <p className="text-gray-400 text-xs mb-1">Date</p>
-                              <p className="font-medium">{moment(booking.date).format("ddd, Do MMM YYYY")}</p>
+                              <p className="font-medium">
+                                {moment(booking.date).format(
+                                  "ddd, Do MMM YYYY",
+                                )}
+                              </p>
                             </div>
                             <div>
                               <p className="text-gray-400 text-xs mb-1">Time</p>
                               <p className="font-medium">{booking.time}</p>
                             </div>
                             <div>
-                              <p className="text-gray-400 text-xs mb-1">Guests</p>
+                              <p className="text-gray-400 text-xs mb-1">
+                                Guests
+                              </p>
                               <p className="font-medium">
-                                {booking.totalSeats || 0} {booking.totalSeats === 1 ? "guest" : "guests"}
+                                {booking.totalSeats || 0}{" "}
+                                {booking.totalSeats === 1 ? "guest" : "guests"}
                               </p>
                             </div>
                             <div>
                               <p className="text-gray-400 text-xs mb-1">Type</p>
-                              <p className="font-medium">{formatBookingType(booking.type)}</p>
+                              <p className="font-medium">
+                                {formatBookingType(booking.type)}
+                              </p>
                             </div>
                           </div>
 
                           <div className="flex items-center justify-between mt-6 pt-5 border-t border-gray-100">
                             <div className="text-sm text-gray-500">
-                              {booking.isJoined ? <span>Joined another diner's table</span> : <span>Your reservation</span>}
+                              {booking.isJoined ? (
+                                <span>Joined another table</span>
+                              ) : (
+                                <span>Your reservation</span>
+                              )}
                             </div>
 
                             <button
-                              onClick={() => setSelectedBooking(booking)}
+                              onClick={() => setSelectedTable(booking)}
                               className="px-4 py-2.5 rounded-lg border border-black text-sm font-medium hover:bg-black hover:text-white transition"
                             >
                               View details
@@ -348,8 +412,13 @@ const DiningJourneyPage = () => {
                           : "Book a restaurant and start building your dining journey."}
                 </p>
 
-                {(search || activeStatus !== "all" || filters.type !== "all") && (
-                  <button onClick={clearFilters} className="mt-5 px-5 py-2.5 rounded-lg bg-black text-white text-sm font-medium">
+                {(search ||
+                  activeStatus !== "all" ||
+                  filters.type !== "all") && (
+                  <button
+                    onClick={clearFilters}
+                    className="mt-5 px-5 py-2.5 rounded-lg bg-black text-white text-sm font-medium"
+                  >
                     Clear filters
                   </button>
                 )}
@@ -359,7 +428,11 @@ const DiningJourneyPage = () => {
         )}
       </div>
 
-      <BookingDetailsModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} />
+      <BookingDetailsModal
+        booking={selectedTable}
+        onClose={() => setSelectedTable(null)}
+        onEdit={handleEditClick}
+      />
     </WrapperComponent>
   );
 };

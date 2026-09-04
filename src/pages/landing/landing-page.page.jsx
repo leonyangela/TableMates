@@ -46,7 +46,7 @@ const LandingPage = () => {
   const goToRestaurantPage = () => {
     setSelectedLocation(null);
     navigate("/restaurants");
-  }
+  };
 
   return (
     <WrapperComponent>
@@ -107,35 +107,38 @@ const LandingPage = () => {
       />
 
       {/* TRENDING HERO — rank #1 from useTrendingRestaurants */}
-      <div className="relative flex justify-center items-center gap-2">
+      <div className="relative flex justify-center items-start gap-2">
         <div
           className={`relative w-1/2 h-96 rounded-2xl bg-cover bg-center overflow-hidden flex flex-col `}
           style={{
             backgroundImage: `url(${heroRestaurant?.image ?? HomeImg1})`,
           }}
         ></div>
-        <div className="w-1/2 ">
-          <h1>Trending Right Now</h1>
-
+        <div className="w-1/2">
           {trendingLoading ? (
             <p className="text-gray-400">Loading…</p>
           ) : heroRestaurant ? (
             <>
-              <p>{heroRestaurant.name}</p>
-              <p>{heroRestaurant.category}</p>
-              <p>{heroRestaurant.price_range}</p>
-              {heroRestaurant.features?.slice(0, 2).map((feature) => (
-                <p key={feature}>{feature}</p>
-              ))}
-              <p>{heroRestaurant.short_description}</p>
+              <FeatureCard
+                eyebrow="trending right now"
+                title={heroRestaurant?.name ?? "Discover Great Places to Dine"}
+                subtitle={
+                  heroRestaurant?.short_description ??
+                  "Check out restaurants that match your taste, explore live availability, and reserve your table in just a few taps."
+                }
+                pretitle={heroRestaurant.category}
+              />
+              <p className=" italic py-2">
+                {heroRestaurant.price_range}
+              </p>
 
               <BaseBtn
-                text={"View Restaurant"}
+                size="sm"
                 onClick={() => {
                   goToReserve(navigate, heroRestaurant.id);
                 }}
               >
-                View Restaurant
+                Reserve Now
               </BaseBtn>
             </>
           ) : (
@@ -195,10 +198,7 @@ const LandingPage = () => {
             subtitle="Whether you're dining solo or with friends, finding the right table should be effortless. Join an open table to meet new people, or book a private table for your own group—all in just a few taps."
           />
 
-          <BaseBtn
-            className="mt-4"
-            onClick={goToRestaurantPage}
-          >
+          <BaseBtn className="mt-4" onClick={goToRestaurantPage}>
             Find a Restaurant
           </BaseBtn>
         </div>
