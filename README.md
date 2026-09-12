@@ -2,7 +2,7 @@
 
 A modern restaurant discovery and booking platform designed to make finding and booking a table simple.
 
-![TableMates](@/images/screenshots/tablemates.png)
+![TableMates](./public/images/screenshots/tablemates.png)
 
 ## About
 
