@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-primary: #c15b3e;
+  --color-secondary: #6f7f5f; /* olive accent */
+  --color-accent: #f0e6d8; /* soft limestone */
+  --color-info: #5a2e25; /* deep rusty */
+  --color-background: #ffffff; /*white */
+
+  --color-rosy-copper-50: #f9efec;
+  --color-rosy-copper-100: #f3ded8;
+  --color-rosy-copper-200: #e6bdb2;
+  --color-rosy-copper-300: #da9c8b;
+  --color-rosy-copper-400: #cd7c65;
+  --color-rosy-copper-500: #c15b3e;
+  --color-rosy-copper-600: #9a4932;
+  --color-rosy-copper-700: #743625;
+  --color-rosy-copper-800: #4d2419;
+  --color-rosy-copper-900: #27120c;
+  --color-rosy-copper-950: #1b0d09;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Open Sans", Helvetica, sans-serif;
+}
+
+.font-oswald {
+  font-family: var(--font-oswald), sans-serif;
+}
+
+.font-open-sans {
+  font-family: var(--font-sans), sans-serif;
+}
