@@ -11,21 +11,11 @@ const CUISINE_OPTIONS = [
 ];
 
 const OTHER_OPTIONS = [
-  {
-    value: "openNow",
-    label: "Open Now",
-  },
-  {
-    value: "trending",
-    label: "Trending",
-  },
+  { value: "openNow", label: "Open now" },
+  { value: "trending", label: "Trending" },
 ];
 
-export default function RestaurantFilters({
-  filters,
-  onChange,
-  onClear,
-}) {
+export default function RestaurantFilters({ filters, onChange, onClear }) {
   const updateFilter = (key, value) => {
     onChange({
       ...filters,
@@ -33,8 +23,12 @@ export default function RestaurantFilters({
     });
   };
 
+  const hasActiveFilters = Boolean(
+    filters.price || filters.cuisine || filters.other
+  );
+
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {/* Price */}
       <div className="flex gap-1">
         {PRICE_OPTIONS.map((price) => (
@@ -42,10 +36,10 @@ export default function RestaurantFilters({
             key={price}
             type="button"
             onClick={() => updateFilter("price", price)}
-            className={`rounded-full border px-3 py-1 text-sm ${
+            className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
               filters.price === price
-                ? "bg-black text-white"
-                : "bg-white text-black"
+                ? "border-[#1F1D1B] bg-[#1F1D1B] text-white"
+                : "border-[#E5E1DB] text-[#1F1D1B] hover:border-[#1F1D1B]/40"
             }`}
           >
             {price}
@@ -62,7 +56,7 @@ export default function RestaurantFilters({
             cuisine: event.target.value || null,
           })
         }
-        className="rounded-full border px-3 py-1"
+        className="rounded-full border border-[#E5E1DB] bg-white px-3 py-1.5 text-sm text-[#1F1D1B] focus:border-[#1F1D1B]/40 focus:outline-none"
       >
         <option value="">All cuisines</option>
 
@@ -79,13 +73,11 @@ export default function RestaurantFilters({
           <button
             key={option.value}
             type="button"
-            onClick={() =>
-              updateFilter("other", option.value)
-            }
-            className={`rounded-full border px-3 py-1 text-sm ${
+            onClick={() => updateFilter("other", option.value)}
+            className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
               filters.other === option.value
-                ? "bg-black text-white"
-                : "bg-white text-black"
+                ? "border-[#1F1D1B] bg-[#1F1D1B] text-white"
+                : "border-[#E5E1DB] text-[#1F1D1B] hover:border-[#1F1D1B]/40"
             }`}
           >
             {option.label}
@@ -93,13 +85,15 @@ export default function RestaurantFilters({
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={onClear}
-        className="px-3 py-1 text-sm underline"
-      >
-        Clear
-      </button>
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="text-sm font-medium text-[#C1502E] hover:underline"
+        >
+          Clear filters
+        </button>
+      )}
     </div>
   );
 }

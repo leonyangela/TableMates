@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getRestaurantsPage } from "@/services/restaurantService";
 
 export function useRestaurants(filters = {}) {
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reloadIndex, setReloadIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,11 +45,16 @@ export function useRestaurants(filters = {}) {
     return () => {
       cancelled = true;
     };
-  }, [filters.price, filters.cuisine, filters.other]);
+  }, [filters.price, filters.cuisine, filters.other, reloadIndex]);
+
+  const refetch = useCallback(() => {
+    setReloadIndex((current) => current + 1);
+  }, []);
 
   return {
     restaurants,
     loading,
     error,
+    refetch,
   };
 }

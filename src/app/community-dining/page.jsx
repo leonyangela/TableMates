@@ -1,3 +1,4 @@
+import SeedRestaurantsButton from "@/components/admin/seeds-button.component";
 import Hero from "@/components/hero/hero.component";
 import Navbar from "@/components/navbar/navbar.component";
 
