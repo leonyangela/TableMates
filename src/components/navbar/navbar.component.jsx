@@ -1,74 +1,97 @@
 "use client";
-import Link from "next/link";
-import { useRef, useState } from "react";
-import Logo from "../logo/logo.component";
+
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+
+import Logo from "@/components/logo/logo.component";
+import NavLink from "@/components/navbar/nav-link.component";
+import MobileMenuButton from "@/components/navbar/mobile-menu.component";
+import ProfileDropdown from "@/components/navbar/profile-dropdown.component";
+import { NAVBAR_ITEMS, AUTH_ITEMS } from "@/components/navbar/navbar.constants";
+import { useAuth } from "@/hooks/useAuth";
+import { useClickOutside } from "@/hooks/useClickOutside";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isLogin, setIsLogin] = useState(false);
-
   const navRef = useRef(null);
+  const pathname = usePathname();
+  const { isLoggedIn, loading } = useAuth();
 
-  const navbarItem = [
-    {
-      title: "Home",
-      path: "/",
-      auth: "all",
-    },
-    {
-      title: "Restaurant",
-      path: "/restaurants",
-      auth: "all",
-    },
-    {
-      title: "Community Dining",
-      path: "/community-dining",
-      auth: "user",
-    },
-    // {
-    //   title: "Dining Journey",
-    //   path: "/dining-journey",
-    //   auth: "user",
-    // },
-  ];
+  const navLinks = NAVBAR_ITEMS.filter(
+    (item) => item.auth === "all" || (isLoggedIn && !loading),
+  );
 
-  const authButtons = [
-    {
-      title: "Login",
-      path: "/login",
-    },
-    {
-      title: "Sign Up",
-      path: "/sign-up",
-    },
-  ];
+  const closeMenu = () => setMenuOpen(false);
 
-  const navLinks = navbarItem.filter((item) => {
-    if (item.auth === "user") return isLogin;
+  useEffect(() => {
+    closeMenu();
+  }, [pathname]);
 
-    return true;
-  });
-
-  const closeMenu = () => {
-    setMenuOpen(false);
-  };
+  useClickOutside(navRef, closeMenu, menuOpen);
 
   return (
     <nav
       ref={navRef}
-      className="bg-white z-50 sticky top-0 left-0 w-full p-2 px-4 flex flex-row justify-between items-center"
+      className="bg-white z-50 sticky top-0 left-0 w-full px-4 py-2 flex flex-col md:flex-row md:justify-between md:items-center"
     >
-      <Logo />
-      <div className="flex gap-4">
-        {navLinks.map((i) => (
-          <Link
-            key={i.path}
-            href={i.path}
-            className="text-sm text-gray-600 transition hover:text-black"
-          >
-            {i.title}
-          </Link>
+      <div className="flex items-center justify-between">
+        <Logo />
+        <MobileMenuButton
+          isOpen={menuOpen}
+          onClick={() => setMenuOpen((prev) => !prev)}
+        />
+      </div>
+
+      {/* Desktop */}
+      <div className="hidden md:flex md:items-center gap-6">
+        {navLinks.map((item) => (
+          <NavLink key={item.path} href={item.path} title={item.title} />
         ))}
+
+        <div className="flex items-center gap-4 border-l pl-6">
+          {!loading &&
+            (isLoggedIn ? (
+              <ProfileDropdown />
+            ) : (
+              AUTH_ITEMS.map((item) => (
+                <NavLink key={item.path} href={item.path} title={item.title} />
+              ))
+            ))}
+        </div>
+      </div>
+
+      {/* Mobile */}
+      <div
+        className={`md:hidden overflow-hidden transition-[max-height] duration-300 ease-in-out ${
+          menuOpen ? "max-h-96" : "max-h-0"
+        }`}
+      >
+        <div className="flex flex-col gap-4 py-4">
+          {navLinks.map((item) => (
+            <NavLink
+              key={item.path}
+              href={item.path}
+              title={item.title}
+              onClick={closeMenu}
+            />
+          ))}
+
+          <div className="flex flex-col gap-3 border-t pt-4">
+            {!loading &&
+              (isLoggedIn ? (
+                <ProfileDropdown onNavigate={closeMenu} />
+              ) : (
+                AUTH_ITEMS.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    href={item.path}
+                    title={item.title}
+                    onClick={closeMenu}
+                  />
+                ))
+              ))}
+          </div>
+        </div>
       </div>
     </nav>
   );

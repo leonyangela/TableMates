@@ -5,8 +5,8 @@ const FooterColumn = ({ title, links }) => {
     <div className="w-1/4">
       <h2 className="pb-6 text-xl font-bold">{title}</h2>
 
-      {links.map((link) => (
-        <FooterLink key={link.href} {...link} />
+      {links.map((link, id) => (
+        <FooterLink key={id} {...link} />
       ))}
     </div>
   );

@@ -8,12 +8,11 @@ import StepCard from "@/components/cards/step-card.component";
 
 import { FEATURES, STEPS } from "./page.constants";
 import Footer from "@/components/footer/footer.component";
+import WrapperComponent from "@/components/wrapper/wrapper.component";
 
 export default function Home() {
   return (
-    <div className="relative">
-      <Navbar />
-
+    <WrapperComponent>
       <div className="w-full h-auto pt-0 px-2">
         <Hero />
       </div>
@@ -68,12 +67,10 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="pt-20 pb-20 ">
+        <div className="pt-20">
           <Testimonials />
         </div>
       </div>
-
-      <Footer />
-    </div>
+    </WrapperComponent>
   );
 }

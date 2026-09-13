@@ -15,7 +15,7 @@ export default function Footer() {
 
       <div className="w-4/5 flex flex-row justify-between">
         {Object.entries(FOOTER_LINKS).map(([title, links]) => (
-          <FooterColumn key={links} title={title} links={links} />
+          <FooterColumn key={title} title={title} links={links} />
         ))}
       </div>
     </div>
