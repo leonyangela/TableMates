@@ -8,40 +8,45 @@ const Button = ({
   onClick,
   disabled = false,
   className = "",
+  Icon,
+  iconSize,
+  iconPosition = "left",
   ...props
 }) => {
   const variants = {
-    primary: "bg-primary text-white hover:bg-rosy-copper-600",
-    secondary: "bg-white text-black border-2 border-gray-300 hover:bg-gray-200",
-    ghost: "bg-transparent text-black hover:bg-gray-100",
+    primary: "rounded-md bg-primary text-white hover:bg-rosy-copper-600",
+    secondary: "rounded-md bg-secondary text-white hover:bg-grey-olive-600",
+    ghost: "rounded-md bg-transparent text-black hover:bg-gray-100",
+    "try-again":
+      "rounded-md bg-white text-black/60 border border-gray-300 hover:bg-grey-olive-100",
+    "navigation-controls":
+      "bg-transparent text-black hover:bg-gray-100 rounded-full",
   };
 
   const sizes = {
-    sm: `px-2 py-1 text-sm`,
-    regular: `px-4 py-1.5`,
+    sm: { button: "px-2 py-1 text-sm", icon: "h-3.5 w-3.5" },
+    regular: { button: "px-4 py-1.5 text-base", icon: "h-4 w-4" },
+    rounded: { button: "px-1 py-1", icon: "h-5 w-5" },
   };
-  
+
+  const currentSize = sizes[size] ?? sizes.regular;
 
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`
-        ${sizes[size]}
-        rounded-md
-        text-base
-        transition-all
-        duration-400
-        hover:cursor-pointer 
-        ${variants[variant]}
-        ${className}
-      `}
+      className={` ${currentSize.button} transition-all duration-400 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className} `}
       {...props}
     >
+      {Icon && iconPosition === "left" && (
+        <Icon className={iconSize ?? currentSize.icon} fontSize={iconSize} />
+      )}
       {children}
+      {Icon && iconPosition === "right" && (
+        <Icon className={iconSize ?? currentSize.icon} fontSize={iconSize} />
+      )}
     </button>
   );
 };
-
 export default Button;

@@ -8,6 +8,7 @@ const CommunityDining = () => {
       <Navbar />
 
       <div className="w-screen h-auto p-4 pt-0">This is a community dining page</div>
+      {/* <SeedRestaurantsButton /> */}
       {/* useBookingStore.getState().setPendingEdit({ editBooking, highlightLocationId }); */}
 {/* router.push("/restaurants"); */}
     </div>

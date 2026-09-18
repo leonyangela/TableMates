@@ -6,9 +6,12 @@ import { useEffect, useState } from "react";
 import WrapperComponent from "@/components/wrapper/wrapper.component";
 import RestaurantCard from "@/components/restaurants/restaurant-card.component";
 import RestaurantFilters from "@/components/restaurants/restaurant-filters.component";
+import RestaurantDetailsPanel from "@/components/restaurants/restaurant-details-panel.component";
+import BookingFormModal from "@/components/booking/booking-form-modal.component";
 
 import { useRestaurants } from "@/hooks/useRestaurants";
 import { useRestaurantSelectionStore } from "@/store/restaurant/restaurant-selecion.store";
+import { useBookingStore } from "@/store/booking/booking.store";
 import RestaurantPopupCard from "@/components/restaurants/restaurant-modal-card.component";
 
 const RestaurantMap = dynamic(
@@ -23,7 +26,7 @@ const RestaurantMap = dynamic(
 
 const DEFAULT_FILTERS = {
   price: null,
-  cuisine: null,
+  category: null,
   other: null,
 };
 
@@ -32,27 +35,31 @@ export default function RestaurantsPage() {
 
   const hoveredId = useRestaurantSelectionStore((state) => state.hoveredId);
   const selectedId = useRestaurantSelectionStore((state) => state.selectedId);
+  const detailsOpen = useRestaurantSelectionStore((state) => state.detailsOpen);
   const setHoveredId = useRestaurantSelectionStore(
     (state) => state.setHoveredId,
   );
   const select = useRestaurantSelectionStore((state) => state.select);
   const closePopup = useRestaurantSelectionStore((state) => state.closePopup);
+  const closeDetails = useRestaurantSelectionStore(
+    (state) => state.closeDetails,
+  );
+
+  // Booking modal is entirely independent of the map/list selection above —
+  // it's driven by its own store, keyed off which restaurant it's open for.
+  const bookingRestaurant = useBookingStore((state) => state.bookingRestaurant);
+  const closeBooking = useBookingStore((state) => state.closeBooking);
 
   const { restaurants, loading, error, refetch } = useRestaurants(filters);
 
-  // The store only holds an id. The actual restaurant object it refers to
-  // — the thing the popup needs to render — is looked up here from the
-  // list this page already has, and can legitimately come back null if
-  // selectedId doesn't match anything currently loaded (e.g. filters
-  // changed after selection).
   const selectedRestaurant =
     restaurants.find((restaurant) => restaurant.id === selectedId) ?? null;
 
-  // Selection state is global to the store, so clear it when this page
-  // unmounts — otherwise a stale selectedId could leak into whatever
-  // mounts the map/store next.
   useEffect(() => {
-    return () => useRestaurantSelectionStore.getState().reset();
+    return () => {
+      useRestaurantSelectionStore.getState().reset();
+      useBookingStore.getState().reset();
+    };
   }, []);
 
   const handleClearFilters = () => {
@@ -63,10 +70,14 @@ export default function RestaurantsPage() {
     <WrapperComponent
       maxWidth="none"
       paddingX="sm"
-      className="flex flex-row gap-2 bg-[#FAF9F6] pt-4"
+      className="flex flex-row gap-2 bg-accent/40 pt-4"
     >
-      <div className="relative h-[90vh] w-1/4 overflow-y-auto">
-        <div className="sticky top-0 z-20 bg-[#FAF9F6] pb-4">
+      <div
+        className={`relative h-[90vh] overflow-y-auto transition-all duration-300 ease-in-out ${
+          detailsOpen ? "hidden" : "w-1/4"
+        }`}
+      >
+        <div className="h-40 z-20 pb-4">
           <h1 className="text-2xl font-semibold text-[#1F1D1B]">
             Search restaurants
           </h1>
@@ -97,7 +108,7 @@ export default function RestaurantsPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 h-[calc(100%-10rem)] overflow-y-auto">
             {loading ? (
               <p className="text-sm text-[#6B6660]">Loading restaurants…</p>
             ) : restaurants.length === 0 ? (
@@ -121,13 +132,42 @@ export default function RestaurantsPage() {
         )}
       </div>
 
-      <div className="h-[90vh] w-3/4 rounded-2xl">
+      {/* Map: shrinks (and visually slides left) when the details panel opens. */}
+      <div
+        className={`h-[90vh] rounded-2xl w-3/4 transition-all duration-300 ease-in-out`}
+      >
         <RestaurantMap restaurants={restaurants} />
       </div>
 
-      {/* Portaled to document.body internally, so it doesn't matter that
-          this sits inside WrapperComponent's layout. */}
-      <RestaurantPopupCard restaurant={selectedRestaurant} onClose={closePopup} />
+      {/* Details panel: slides in from the right by animating from w-0 to
+          w-1/4 in lockstep with the map shrinking above. overflow-hidden
+          keeps its content clipped while collapsed instead of wrapping. */}
+      <div
+        className={`h-[90vh] overflow-hidden transition-all duration-300 ease-in-out ${
+          detailsOpen ? "w-1/4 opacity-100" : "w-0 opacity-0"
+        }`}
+      >
+        <RestaurantDetailsPanel
+          restaurant={selectedRestaurant}
+          onClose={closeDetails}
+        />
+      </div>
+
+      {/* Popup only shows for a quick preview — once "View full details" is
+          clicked, detailsOpen takes over and the popup hides. */}
+      {!detailsOpen && (
+        <RestaurantPopupCard
+          restaurant={selectedRestaurant}
+          onClose={closePopup}
+        />
+      )}
+
+      {/* Booking modal — opened from the "Book a table" button inside
+          RestaurantDetailsPanel, entirely independent of the map/popup
+          selection state above. */}
+      {bookingRestaurant && (
+        <BookingFormModal restaurant={bookingRestaurant} onClose={closeBooking} />
+      )}
     </WrapperComponent>
   );
 }

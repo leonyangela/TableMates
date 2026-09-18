@@ -133,12 +133,12 @@ export default function ProfilePage() {
           <div className="py-16 text-center border border-gray-200 rounded-2xl">
             <h2 className="font-semibold text-lg">Something went wrong</h2>
             <p className="text-gray-500 mt-1">{fetchError}</p>
-            <button
+            <Button
               onClick={fetchProfile}
-              className="mt-5 px-5 py-2.5 rounded-lg bg-black text-white text-sm font-medium"
+              variant="try-again"
             >
               Try again
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-2xl p-6">

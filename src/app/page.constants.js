@@ -37,7 +37,7 @@ export const STEPS = [
     icon: Map,
     title: "Discover",
     description:
-      "Browse restaurants nearby, filtered by cuisine, price, and availability.",
+      "Browse restaurants, filtered by cuisine, price, and availability.",
     variant: "accent",
   },
   {

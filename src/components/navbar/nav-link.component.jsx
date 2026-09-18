@@ -12,8 +12,8 @@ export default function NavLink({ href, title, onClick, className = "" }) {
       href={href}
       onClick={onClick}
       aria-current={isActive ? "page" : undefined}
-      className={`text-sm transition hover:text-black ${
-        isActive ? "text-black font-semibold" : "text-gray-600"
+      className={`text-base font-regular transition hover:cursor-pointer hover:text-black ${
+        isActive ? "text-black font-semibold" : "text-grey-olive-600"
       } ${className}`}
     >
       {title}

@@ -45,7 +45,7 @@ export function useRestaurants(filters = {}) {
     return () => {
       cancelled = true;
     };
-  }, [filters.price, filters.cuisine, filters.other, reloadIndex]);
+  }, [filters.price, filters.category, filters.other, reloadIndex]);
 
   const refetch = useCallback(() => {
     setReloadIndex((current) => current + 1);

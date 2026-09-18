@@ -1,41 +1,16 @@
 import React, { useMemo, useState } from "react";
 import Button from "../button/button.component";
 import { X } from "lucide-react";
-// import { DEFAULT_BOOKING_FORM, useBookingStore } from "../../../../store/useBookingStore";
+import {
+  DEFAULT_BOOKING_FORM,
+  useBookingStore,
+} from "@/store/booking/booking.store";
+import {
+  OCCASION_OPTIONS,
+  TABLE_VISIBILITY_OPTIONS,
+} from "@/store/booking/booking-constants";
 
 const TODAY_STR = new Date().toISOString().split("T")[0];
-
-const OCCASION_OPTIONS = [
-  "Casual Dining",
-  "Birthday",
-  "Anniversary",
-  "Business Meeting",
-  "Date Night",
-  "Family Gathering",
-  "Celebration",
-  "Other",
-];
-
-// "Who can join your table?" — the three visibility levels a booking can
-// have. This single field is what the "Dining Journey" feed filters on:
-// anything other than "private" gets surfaced there for other diners.
-const TABLE_VISIBILITY_OPTIONS = [
-  {
-    key: "private",
-    label: "Private",
-    description: "Just my booking — no one else can join.",
-  },
-  {
-    key: "open_approval",
-    label: "Open Table — Approval Needed",
-    description: "Others can request to join; you approve who sits down.",
-  },
-  {
-    key: "open_public",
-    label: "Open Table — Public",
-    description: "Anyone can join instantly, no approval needed.",
-  },
-];
 
 /** "14:00" -> "2:00 PM" */
 const formatTimeLabel = (time24) => {
@@ -305,8 +280,8 @@ const BookingFormModal = ({
                 />
                 {isEditing && minTotalSeats > 1 && (
                   <p className="text-xs text-gray-400 mt-1">
-                    Can't go below {minTotalSeats} — other diners already
-                    hold seats at this table.
+                    Can't go below {minTotalSeats} — other diners already hold
+                    seats at this table.
                   </p>
                 )}
               </div>

@@ -18,7 +18,9 @@ export function useUserProfile() {
   const [saveError, setSaveError] = useState(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     let isMounted = true;
 
@@ -31,11 +33,16 @@ export function useUserProfile() {
 
         if (!isMounted) return;
 
-        setProfile(data ?? { email: user.email, name: user.displayName || "" });
+        setProfile(
+          data ?? {
+            email: user.email,
+            name: user.displayName || "",
+          },
+        );
       } catch (err) {
         if (!isMounted) return;
 
-        console.error("getUserProfile failed:", err.code, err.message);
+        console.error("getUserProfile failed:", err);
         setFetchError("Couldn't load your profile. Please try again.");
       } finally {
         if (isMounted) {
@@ -72,9 +79,9 @@ export function useUserProfile() {
   );
 
   return {
-    profile,
-    isLoading,
-    fetchError,
+    profile: user ? profile : null,
+    isLoading: user ? isLoading : false,
+    fetchError: user ? fetchError : null,
     isSaving,
     saveError,
     updateProfile,

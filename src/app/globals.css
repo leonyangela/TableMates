@@ -12,12 +12,12 @@
   --font-mono: var(--font-geist-mono);
 
   --color-primary: #c15b3e;
-  --color-secondary: #6f7f5f; /* olive accent */
+  --color-secondary: #999999; /* grey olive*/
   --color-accent: #f0e6d8; /* soft limestone */
   --color-info: #5a2e25; /* deep rusty */
   --color-background: #ffffff; /*white */
 
-  --color-rosy-copper-50: #f9efec;
+  --color-grey-olive-50: #f9efec;
   --color-rosy-copper-100: #f3ded8;
   --color-rosy-copper-200: #e6bdb2;
   --color-rosy-copper-300: #da9c8b;
@@ -28,6 +28,18 @@
   --color-rosy-copper-800: #4d2419;
   --color-rosy-copper-900: #27120c;
   --color-rosy-copper-950: #1b0d09;
+
+  --color-grey-olive-50: #F2F2F2;
+  --color-grey-olive-100: #E6E6E6;
+  --color-grey-olive-200: #CCCCCC;
+  --color-grey-olive-300: #B3B3B3;
+  --color-grey-olive-400: #999999;
+  --color-grey-olive-500: #808080;
+  --color-grey-olive-600: #666666;
+  --color-grey-olive-700: #4D4D4D;
+  --color-grey-olive-800: #333333;
+  --color-grey-olive-900: #1A1A1A;
+  --color-grey-olive-950: #121212;
 }
 
 @media (prefers-color-scheme: dark) {

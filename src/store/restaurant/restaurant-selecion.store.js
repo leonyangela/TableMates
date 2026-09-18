@@ -1,28 +1,32 @@
 import { create } from "zustand";
 
 /**
- * Holds hover/selection state for the restaurant map + list.
- *
- * This is UI-only state (which restaurant is hovered / which one has its
- * popup open) — not server data, so it doesn't belong in useRestaurants.
- * It's kept in a store rather than page-level useState because it's read
- * and written from three places that aren't in a simple parent → child
- * line: the list (RestaurantCard), the map (RestaurantMap), and mapbox's
- * own vanilla DOM event listeners inside RestaurantMap, which run outside
- * React's render cycle entirely. See the explanation in chat for why that
- * matters.
+ * Holds hover/selection state for the restaurant map + list, plus whether
+ * the full-details side panel is open.
  */
 export const useRestaurantSelectionStore = create((set) => ({
   hoveredId: null,
   selectedId: null,
+  detailsOpen: false,
 
   setHoveredId: (id) => set({ hoveredId: id }),
 
   // Selecting the same restaurant again closes its popup.
   select: (id) =>
-    set((state) => ({ selectedId: state.selectedId === id ? null : id })),
+    set((state) => ({
+      selectedId: state.selectedId === id ? null : id,
+      detailsOpen: state.selectedId === id ? false : state.detailsOpen,
+    })),
 
   closePopup: () => set({ selectedId: null }),
 
-  reset: () => set({ hoveredId: null, selectedId: null }),
+  // "View full details" — keeps the restaurant selected (so the map stays
+  // flown-to and the marker stays highlighted) but swaps the popup for the
+  // side panel.
+  openDetails: (id) => set({ selectedId: id, detailsOpen: true }),
+
+  // Closing the details panel returns to the normal 2-column layout.
+  closeDetails: () => set({ selectedId: null, detailsOpen: false }),
+
+  reset: () => set({ hoveredId: null, selectedId: null, detailsOpen: false }),
 }));

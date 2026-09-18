@@ -2,23 +2,34 @@ export default function StepCard({
   icon: Icon,
   title,
   description,
-  variant = "accent",
+  variant = "primary",
 }) {
   const styles = {
-    accent: { bg: "bg-accent", text: "" },
-    primary: { bg: "bg-primary", text: "text-white" },
+    accent: {
+      bg: "bg-accent",
+      text: "text-black",
+      border: "border border-olive-500",
+    },
+    primary: {
+      bg: "bg-primary",
+      text: "text-white",
+      border: "border border-white",
+    },
   };
+
   const s = styles[variant];
 
   return (
-    <div className={`w-1/4 ${s.bg} rounded-lg relative p-4 mt-4`}>
+    <div className={`w-full ${s.bg} rounded-lg relative p-4 flex gap-2 `}>
       <div
-        className={`left-0 -top-6 absolute rounded-full flex items-center justify-center w-12 h-12 ${s.bg} border border-white`}
+        className={`rounded-full flex items-center justify-center w-8 h-8 ${s.bg} ${s.border} `}
       >
-        <Icon className={s.text} />
+        <Icon size={20} className={s.text} />
       </div>
-      <h1 className={`${s.text} pt-16 pb-2 font-bold text-left`}>{title}</h1>
-      <p className={`${s.text} text-left`}>{description}</p>
+      <div className="w-[calc(100%-2rem)]">
+        <h1 className={`${s.text} text-base font-bold text-left`}>{title}</h1>
+        <p className={`${s.text} text-sm text-left`}>{description}</p>
+      </div>
     </div>
   );
 }

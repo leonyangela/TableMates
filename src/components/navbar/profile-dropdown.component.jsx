@@ -51,14 +51,14 @@ export default function ProfileDropdown({ onNavigate }) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-sm font-semibold text-gray-600">
+            <span className="text-sm font-semibold text-grey-olive-600">
               {initial}
             </span>
           )}
         </span>
         <ChevronDown
           size={16}
-          className={`text-gray-500 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`text-grey-olive-500 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -81,7 +81,7 @@ export default function ProfileDropdown({ onNavigate }) {
             type="button"
             onClick={handleLogout}
             role="menuitem"
-            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 hover:cursor-pointer"
           >
             Logout
           </button>

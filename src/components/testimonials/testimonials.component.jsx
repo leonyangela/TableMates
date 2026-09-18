@@ -1,6 +1,7 @@
 "use client";
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+import Button from "../button/button.component";
 
 const testimonials = [
   {
@@ -54,12 +55,12 @@ const testimonials = [
 ];
 
 const TestimonialCard = ({ quote, name, restaurant, image }) => (
-  <article className="flex h-full min-h-[320px] flex-col justify-between rounded-2xl border border-gray-200 bg-white p-6">
+  <article className="flex h-full min-h-60 flex-col justify-between rounded-md border border-gray-200 bg-white p-4">
     <div className="relative">
       <div className="absolute -top-16 -left-10 z-20 mb-2 text-gray-300">
         <Quote sx={{ fontSize: 120 }} />
       </div>
-      <p className="relative z-40 text-base leading-7 text-gray-800">{quote}</p>
+      <p className="relative z-40 text-base text-gray-800">{quote}</p>
     </div>
 
     <div className="pt-2 flex items-center gap-3">
@@ -136,37 +137,37 @@ const Testimonials = () => {
           </p>
         </div>
 
-        <div className="mt-10 flex items-center justify-between border-t border-gray-200 pt-2">
+        <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-2">
           <div className="flex items-center gap-2 text-sm">
             <span className="min-w-4 text-center font-medium text-primary">
               {String(currentPage).padStart(2, "0")}
             </span>
-            <span className="text-gray-300">/</span>
-            <span className="text-gray-500">
+            <span className="text-grey-olive-300">/</span>
+            <span className="text-grey-olive-500">
               {String(totalPages).padStart(2, "0")}
             </span>
           </div>
 
           <div className="flex gap-3">
-            <button
-              type="button"
+            <Button
               onClick={() => goTo(currentIndex - 1)}
               disabled={currentIndex === 0}
               aria-label="Previous testimonial"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-900 transition-colors hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-30 hover:cursor-pointer"
+              variant="navigation-controls"
+              size="rounded"
             >
               <ChevronLeft />
-            </button>
+            </Button>
 
-            <button
-              type="button"
+            <Button
               onClick={() => goTo(currentIndex + 1)}
               disabled={currentIndex === maxIndex}
               aria-label="Next testimonial"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-900 transition-colors hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-30 hover:cursor-pointer"
+              variant="navigation-controls"
+              size="rounded"
             >
               <ChevronRight />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

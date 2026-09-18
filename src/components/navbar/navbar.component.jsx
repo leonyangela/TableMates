@@ -1,31 +1,31 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+
+import { useAuth } from "@/hooks/useAuth";
+import { useClickOutside } from "@/hooks/useClickOutside";
 
 import Logo from "@/components/logo/logo.component";
 import NavLink from "@/components/navbar/nav-link.component";
 import MobileMenuButton from "@/components/navbar/mobile-menu.component";
 import ProfileDropdown from "@/components/navbar/profile-dropdown.component";
+
 import { NAVBAR_ITEMS, AUTH_ITEMS } from "@/components/navbar/navbar.constants";
-import { useAuth } from "@/hooks/useAuth";
-import { useClickOutside } from "@/hooks/useClickOutside";
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const navRef = useRef(null);
   const pathname = usePathname();
   const { isLoggedIn, loading } = useAuth();
+  const navRef = useRef(null);
+  
+  const [openPath, setOpenPath] = useState(null);
+  const menuOpen = openPath === pathname;
 
   const navLinks = NAVBAR_ITEMS.filter(
     (item) => item.auth === "all" || (isLoggedIn && !loading),
   );
 
-  const closeMenu = () => setMenuOpen(false);
-
-  useEffect(() => {
-    closeMenu();
-  }, [pathname]);
+  const closeMenu = () => setOpenPath(null);
 
   useClickOutside(navRef, closeMenu, menuOpen);
 
@@ -38,7 +38,7 @@ export default function Navbar() {
         <Logo />
         <MobileMenuButton
           isOpen={menuOpen}
-          onClick={() => setMenuOpen((prev) => !prev)}
+          onClick={() => setOpenPath(menuOpen ? null : pathname)}
         />
       </div>
 
