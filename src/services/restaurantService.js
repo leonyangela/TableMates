@@ -1,264 +1,310 @@
 import {
   collection,
   doc,
+  documentId,
   getDoc,
   getDocs,
+  limit,
+  orderBy,
   query,
+  startAfter,
   where,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/config";
+import {
+  PAGE_SIZE,
+  TOP_RATED_MIN_RATING,
+} from "@/lib/constants/restaurant.constants";
 
-const PAGE_SIZE = 20;
-const TRENDING_LIMIT = 6;
-const TOP_RATED_LIMIT = 6;
+const RESTAURANTS_COLLECTION = "restaurants";
 
-/**
- * Builds the Firestore query for restaurant discovery.
+/* -----------------------------------------------------------------------
+ * QUERY BUILDING
  *
- * Only category is currently applied at the Firestore level.
- * Price and "other" filters are applied client-side because the current
- * dataset is small and this avoids requiring multiple composite indexes.
- *
- * If the restaurants collection grows significantly, these filters should
- * be moved into Firestore queries and proper pagination should be introduced.
- */
-function buildRestaurantsQuery(filters = {}) {
+ * Firestore only allows range/inequality filtering on ONE field per query.
+ * price_range overlap needs `price_range.min <= X AND price_range.max >= Y`
+ * — two inequalities on two different fields — which Firestore rejects
+ * outright, regardless of collection size. Trending and "top rated" are
+ * booleans/thresholds a user can combine freely, which would need a
+ * composite index per combination if done as separate where() clauses.
+ * So `category` stays the only server-side constraint (a single equality
+ * filter never needs a composite index), and everything else — price
+ * range, trending, top rated — is filtered client-side per page below.
+ * ---------------------------------------------------------------------- */
+function buildRestaurantsQuery(filters, cursorId) {
   const constraints = [];
 
   if (filters.category) {
     constraints.push(where("category", "==", filters.category));
   }
 
-  return query(collection(db, "restaurants"), ...constraints);
+  // Ordering by document ID needs no additional index even alongside the
+  // one equality filter above (every collection has an implicit index on
+  // it), and gives startAfter() a stable, always-unique cursor.
+  constraints.push(orderBy(documentId()));
+  constraints.push(limit(PAGE_SIZE));
+
+  if (cursorId) {
+    // A plain document-ID string, not a QueryDocumentSnapshot — Firestore
+    // accepts either for startAfter() when the orderBy is on that same
+    // field. Using the string form (see getRestaurantsPage) is what keeps
+    // the cursor serializable, since it needs to survive being handed from
+    // a Server Component to a Client Component as a plain prop.
+    constraints.push(startAfter(cursorId));
+  }
+
+  return query(collection(db, RESTAURANTS_COLLECTION), ...constraints);
 }
 
-/**
- * Applies filters that are currently handled on the client.
- *
- * Optional chaining is used because filters such as `price` may not
- * always exist when no price filter has been selected.
- */
-function matchesClientFilters(restaurant, filters = {}) {
-  const priceMin = filters.price?.min;
+/** Whether a restaurant's price_range overlaps the user's selected budget. Open-ended when only one bound is set. */
+function matchesPriceRange(restaurant, priceMin, priceMax) {
+  if (priceMin == null && priceMax == null) {
+    return true;
+  }
 
-  if (priceMin && restaurant.price_range?.min !== priceMin) {
+  const { min = 0, max = Infinity } = restaurant.price_range ?? {};
+
+  if (priceMin != null && max < priceMin) return false;
+  if (priceMax != null && min > priceMax) return false;
+
+  return true;
+}
+
+/** Applies every client-side-only filter dimension (price, trending, top rated) to one restaurant. */
+function matchesClientFilters(restaurant, filters) {
+  if (!matchesPriceRange(restaurant, filters.priceMin, filters.priceMax)) {
     return false;
   }
 
-  if (filters.other === "trending" && restaurant.trending !== true) {
+  const other = filters.other ?? [];
+
+  if (other.includes("trending") && !restaurant.trending) {
+    return false;
+  }
+
+  if (other.includes("top") && !(restaurant.rating >= TOP_RATED_MIN_RATING)) {
     return false;
   }
 
   return true;
 }
 
-/**
- * Converts different date formats into milliseconds so they can
- * be compared and sorted consistently.
- *
- * Firestore timestamps expose `toDate()`, while JavaScript Date objects
- * and ISO date strings can also be handled.
- *
- * Missing or invalid dates return 0 so they naturally sort as oldest.
- */
-function toMillis(value) {
-  if (!value) {
-    return 0;
-  }
-
-  // Firestore Timestamp
-  if (typeof value.toDate === "function") {
-    return value.toDate().getTime();
-  }
-
-  // JavaScript Date
-  if (value instanceof Date) {
-    return value.getTime();
-  }
-
-  // ISO string or another parseable date value
-  const parsed = new Date(value).getTime();
-
-  return Number.isNaN(parsed) ? 0 : parsed;
+function toRestaurant(restaurantDoc) {
+  return { id: restaurantDoc.id, ...restaurantDoc.data() };
 }
 
 /**
- * Descending numeric comparison.
- *
- * Example:
- * desc(5, 10) -> 5
- *
- * Used with Array.sort() to put larger values first.
+ * Normalizes createdAt into comparable milliseconds, whether it's a
+ * Firestore Timestamp (.toDate()), a JS Date, or an ISO string. Missing or
+ * unparseable values sort as "oldest" (0) rather than throwing — documents
+ * without createdAt (see the note in chat about adding this field) simply
+ * won't win recency tiebreaks, instead of crashing the sort.
  */
+function toMillis(value) {
+  if (!value) return 0;
+  if (typeof value.toDate === "function") return value.toDate().getTime();
+  if (value instanceof Date) return value.getTime();
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function hasRating(restaurant) {
+  return typeof restaurant.rating === "number" && restaurant.rating > 0;
+}
+
+function hasReviewCount(restaurant) {
+  return (
+    typeof restaurant.reviewCount === "number" && restaurant.reviewCount > 0
+  );
+}
+
 function desc(a, b) {
   return b - a;
 }
 
 /**
- * Ranks restaurants by overall quality.
- *
- * Priority:
- * 1. Higher rating
- * 2. Higher review count
- * 3. More recently created
- *
- * Rating and review count are treated as 0 when the restaurant
- * does not have those values.
+ * Ranks by quality: highest rating wins, reviewCount as the tiebreak, and
+ * createdAt as a final fallback when a pair has neither rating nor
+ * reviewCount to compare. Used for both the homepage's "Top rated" (across
+ * everyone) and "Trending" (within just the flagged pool) — the two
+ * sections differ in which restaurants they rank, not in how.
  */
 function compareByQuality(a, b) {
-  const ratingDiff = desc(a.rating ?? 0, b.rating ?? 0);
-
-  if (ratingDiff !== 0) {
-    return ratingDiff;
+  if (
+    !(hasRating(a) || hasReviewCount(a)) &&
+    !(hasRating(b) || hasReviewCount(b))
+  ) {
+    return desc(toMillis(a.createdAt), toMillis(b.createdAt));
   }
+
+  const ratingDiff = desc(a.rating ?? 0, b.rating ?? 0);
+  if (ratingDiff !== 0) return ratingDiff;
 
   const reviewDiff = desc(a.reviewCount ?? 0, b.reviewCount ?? 0);
-
-  if (reviewDiff !== 0) {
-    return reviewDiff;
-  }
+  if (reviewDiff !== 0) return reviewDiff;
 
   return desc(toMillis(a.createdAt), toMillis(b.createdAt));
 }
 
-/**
- * Fetches restaurants for the discovery page.
- *
- * The current implementation fetches the matching Firestore documents,
- * applies client-side filters, sorts them by newest first, and then
- * limits the number returned to PAGE_SIZE.
- *
- * NOTE:
- * This is display-level pagination, not true Firestore pagination.
- * `lastDoc` is therefore null and no additional page can currently
- * be requested from Firestore.
- *
- * This approach is acceptable for the current small portfolio dataset.
- * For a large production collection, use Firestore `limit()` and
- * `startAfter()` for cursor-based pagination.
- */
-export async function getRestaurantsPage({ filters = {} } = {}) {
-  const restaurantsQuery = buildRestaurantsQuery(filters);
+/* -----------------------------------------------------------------------
+ * MAIN LISTING (paginated)
+ * ---------------------------------------------------------------------- */
 
-  const snapshot = await getDocs(restaurantsQuery);
+// Client-side filtering means a single Firestore page can come back with
+// few or zero visible matches (if that page's docs mostly fail the price/
+// trending/top filters). Rather than show the user an inconsistent,
+// filter-dependent page size, this fetches further pages — bounded by this
+// cap so a very restrictive filter combination can't spin through the
+// whole collection in one call — until it has a full page of matches or
+// genuinely runs out of data.
+const MAX_PAGE_FETCHES = 5;
 
-  const restaurants = snapshot.docs
-    .map((restaurantDoc) => ({
-      id: restaurantDoc.id,
-      ...restaurantDoc.data(),
-    }))
-    .filter((restaurant) => matchesClientFilters(restaurant, filters))
-    // Newest restaurants are shown first.
-    .sort((a, b) => desc(toMillis(a.createdAt), toMillis(b.createdAt)));
+async function hasMoreAfterCursor(filters, cursorId) {
+  if (!cursorId) return false;
 
-  const page = restaurants.slice(0, PAGE_SIZE);
+  const constraints = [];
 
-  return {
-    restaurants: page,
+  if (filters.category) {
+    constraints.push(where("category", "==", filters.category));
+  }
 
-    // True Firestore cursor pagination is not implemented yet.
-    lastDoc: null,
+  constraints.push(orderBy(documentId()));
+  constraints.push(startAfter(cursorId));
+  constraints.push(limit(1));
 
-    // Indicates whether more filtered restaurants exist
-    // beyond the current display page.
-    hasNextPage: restaurants.length > PAGE_SIZE,
-  };
+  const snapshot = await getDocs(
+    query(collection(db, RESTAURANTS_COLLECTION), ...constraints),
+  );
+
+  return !snapshot.empty;
 }
 
 /**
- * Fetches a single restaurant by its Firestore document ID.
- *
- * Returns null when the restaurant does not exist.
+ * Fetches one page of restaurants matching `filters`, cursor-paginated so
+ * a 1,000+ row collection is never pulled in one shot. Pass the previous
+ * call's `nextCursor` back in as `cursor` to continue (this is what
+ * useRestaurants' `loadMore` does, and what a Server Component's initial
+ * page.jsx fetch hands to the client as a plain, serializable string).
  */
+export async function getRestaurantsPage({ filters = {}, cursor = null } = {}) {
+  let matches = [];
+  let cursorId = cursor;
+  let exhausted = false;
+
+  for (let attempt = 0; attempt < MAX_PAGE_FETCHES; attempt += 1) {
+    const snapshot = await getDocs(buildRestaurantsQuery(filters, cursorId));
+
+    if (snapshot.empty) {
+      exhausted = true;
+      break;
+    }
+
+    cursorId = snapshot.docs[snapshot.docs.length - 1].id;
+
+    matches = matches.concat(
+      snapshot.docs
+        .map(toRestaurant)
+        .filter((restaurant) => matchesClientFilters(restaurant, filters)),
+    );
+
+    const gotFullFirestorePage = snapshot.docs.length === PAGE_SIZE;
+
+    if (!gotFullFirestorePage) {
+      exhausted = true;
+      break;
+    }
+
+    if (matches.length >= PAGE_SIZE) {
+      break;
+    }
+  }
+
+  // A "full" last Firestore page doesn't prove more data exists — it might
+  // have landed exactly on the end of the collection (e.g. 40 docs, 20 per
+  // page). Confirm with a 1-doc lookahead before reporting hasMore: true.
+  let hasMore = !exhausted;
+  if (hasMore) {
+    hasMore = await hasMoreAfterCursor(filters, cursorId);
+  }
+
+  return {
+    restaurants: matches,
+    nextCursor: hasMore ? cursorId : null,
+    hasMore,
+  };
+}
+
 export async function getRestaurantById(id) {
-  const snapshot = await getDoc(doc(db, "restaurants", id));
+  const snapshot = await getDoc(doc(db, RESTAURANTS_COLLECTION, id));
 
   if (!snapshot.exists()) {
     return null;
   }
 
-  return {
-    id: snapshot.id,
-    ...snapshot.data(),
-  };
+  return toRestaurant(snapshot);
 }
 
 /**
- * Returns the number of restaurants matching the selected filters.
- *
- * Category is filtered by Firestore first, while price and trending
- * are applied client-side using the same filtering logic as
- * getRestaurantsPage().
- *
- * This is suitable for a small dataset. For a large collection,
- * consider Firestore aggregation queries or maintaining counters.
+ * Approximate count for the current filters: reads every category-matched
+ * document to apply the client-side filters, same cost profile as
+ * getHomepageRestaurantSections below. Fine at small/medium scale; if the
+ * collection grows large and an exact count matters, a Firestore
+ * aggregation query (getCountFromServer) only works for the category
+ * constraint alone, not combined with price/trending/top.
  */
 export async function getRestaurantsCount(filters = {}) {
-  const restaurantsQuery = buildRestaurantsQuery(filters);
-
-  const snapshot = await getDocs(restaurantsQuery);
+  const constraints = filters.category
+    ? [where("category", "==", filters.category)]
+    : [];
+  const snapshot = await getDocs(
+    query(collection(db, RESTAURANTS_COLLECTION), ...constraints),
+  );
 
   return snapshot.docs
     .map((restaurantDoc) => restaurantDoc.data())
     .filter((restaurant) => matchesClientFilters(restaurant, filters)).length;
 }
 
+/* -----------------------------------------------------------------------
+ * HOMEPAGE SECTIONS (whole-collection ranking — see scaling note below)
+ * ---------------------------------------------------------------------- */
+
+const TRENDING_LIMIT = 6;
+const TOP_RATED_LIMIT = 6;
+
 /**
- * Fetches the restaurant sections used on the homepage.
+ * Homepage sections, computed from a single fetch of the whole collection:
+ *  - topRated: EVERY restaurant, ranked by rating then reviewCount. Always
+ *    has up to `topRatedLimit` results regardless of the `trending` flag.
+ *  - trending: ONLY restaurants flagged `trending: true`, ranked the same
+ *    way among themselves. Purely editorial — can come back with fewer
+ *    than `trendingLimit`, or none; callers should hide the section
+ *    entirely when empty rather than backfilling it with unrelated data.
  *
- * Two independent sections are created from the same dataset:
- *
- * - topRated:
- *   All restaurants ranked by rating, review count,
- *   then creation date.
- *
- * - trending:
- *   Only restaurants explicitly marked with
- *   `trending: true`, ranked using the same quality rules.
- *
- * Trending is editorial rather than automatically calculated.
- * This means the section can legitimately contain fewer than
- * TRENDING_LIMIT restaurants.
- *
- * Both sections are currently calculated client-side because
- * the restaurant collection is small. For a larger dataset,
- * consider maintaining precomputed ranking fields.
+ * Scaling note: there's no Firestore query that can express either
+ * ranking (both need to compare rating/reviewCount/createdAt across
+ * documents), so this has to read the whole collection client-side. Fine
+ * at small/medium scale. At real scale (thousands of rows), the right fix
+ * is precomputing these — e.g. a scheduled Cloud Function that recomputes
+ * a small "homepage_picks" document/collection periodically — rather than
+ * ranking the entire collection on every homepage load.
  */
 export async function getHomepageRestaurantSections({
   trendingLimit = TRENDING_LIMIT,
   topRatedLimit = TOP_RATED_LIMIT,
 } = {}) {
-  // One Firestore request is used for both homepage sections.
-  const snapshot = await getDocs(collection(db, "restaurants"));
+  const snapshot = await getDocs(collection(db, RESTAURANTS_COLLECTION));
+  const restaurants = snapshot.docs.map(toRestaurant);
 
-  const restaurants = snapshot.docs.map((restaurantDoc) => ({
-    id: restaurantDoc.id,
-    ...restaurantDoc.data(),
-  }));
-
-  /**
-   * Top Rated:
-   * Includes every restaurant, regardless of its trending flag.
-   */
   const topRated = [...restaurants]
     .sort(compareByQuality)
     .slice(0, topRatedLimit);
 
-  /**
-   * Trending:
-   * Only explicitly flagged restaurants are included.
-   *
-   * We intentionally do not backfill this section with
-   * non-trending restaurants if fewer than the limit exist.
-   */
   const trending = restaurants
-    .filter((restaurant) => restaurant.trending === true)
+    .filter((restaurant) => restaurant.trending)
     .sort(compareByQuality)
     .slice(0, trendingLimit);
 
-  return {
-    topRated,
-    trending,
-  };
+  return { trending, topRated };
 }

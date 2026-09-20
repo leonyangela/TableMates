@@ -2,42 +2,38 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRestaurantSelectionStore } from "@/store/restaurant/restaurant-selecion.store";
+
+import { useRestaurantSelectionStore } from "@/store/restaurant/restaurant.store";
+import {
+  formatOpeningHours,
+  formatPriceRange,
+} from "@/lib/utils/formatters.utils";
 
 export default function RestaurantPopupCard({ restaurant, onClose }) {
-  // const [mounted, setMounted] = useState(false);
   const openDetails = useRestaurantSelectionStore((state) => state.openDetails);
 
-  // createPortal needs document.body, which is only available in the browser.
-  // useEffect(() => {
-  //   setMounted(true);
-  // }, []);
-
-  // Allow the user to close the popup with Escape.
   useEffect(() => {
-    // if (!mounted) return;
     function handleKeyDown(event) {
       if (event.key === "Escape") {
         onClose?.();
       }
     }
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  if (!restaurant ) {
+  if (!restaurant) {
     return null;
   }
 
-  const metaParts = [restaurant.category, restaurant.priceRange].filter(
-    Boolean,
-  );
+  const priceLabel = formatPriceRange(restaurant.price_range);
+  const metaParts = [restaurant.category, priceLabel].filter(Boolean);
+  const openingHoursLabel = formatOpeningHours(restaurant.time_opening);
 
   function handleViewDetails() {
     openDetails(restaurant.id);
   }
+
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
@@ -67,17 +63,22 @@ export default function RestaurantPopupCard({ restaurant, onClose }) {
             ×
           </button>
         </div>
+
         {metaParts.length > 0 && (
-          <p className="mt-1 text-sm text-[#6B6660]">{metaParts.join(" · ")}</p>
+          <p className="mt-1 text-sm text-[#6B6660]">
+            {metaParts.join(" \u00b7 ")}
+          </p>
         )}
-        {restaurant.time_opening && (
-          <p className="mt-2 text-sm text-[#6B6660] break-words">
-            Opens at
+
+        {openingHoursLabel && (
+          <p className="mt-2 text-sm text-[#6B6660]">
+            Open{" "}
             <span className="font-medium text-[#1F1D1B]">
-              {restaurant.time_opening}
+              {openingHoursLabel}
             </span>
           </p>
         )}
+
         {restaurant.trending && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             <span className="rounded-full bg-[#C1502E]/10 px-2 py-0.5 text-xs font-medium text-[#C1502E]">
@@ -85,6 +86,7 @@ export default function RestaurantPopupCard({ restaurant, onClose }) {
             </span>
           </div>
         )}
+
         <button
           type="button"
           onClick={handleViewDetails}

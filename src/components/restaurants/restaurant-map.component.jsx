@@ -5,7 +5,7 @@ import mapboxgl from "mapbox-gl";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import { MAX_ZOOM, MIN_ZOOM } from "@/lib/mapbox/config";
-import { useRestaurantSelectionStore } from "@/store/restaurant/restaurant-selecion.store";
+import { useRestaurantSelectionStore } from "@/store/restaurant/restaurant.store";
 
 const DEFAULT_CENTER = [153.0308782391196, -27.468051618835155];
 const DEFAULT_ZOOM = 13;
@@ -75,10 +75,7 @@ export default function RestaurantMap({ restaurants = [] }) {
     dotsRef.current.clear();
 
     restaurants.forEach((restaurant) => {
-      if (
-        !restaurant.location?.latitude ||
-        !restaurant.location?.longitude
-      ) {
+      if (!restaurant.location?.latitude || !restaurant.location?.longitude) {
         return;
       }
 
@@ -123,7 +120,10 @@ export default function RestaurantMap({ restaurants = [] }) {
       const isHighlighted =
         restaurantId === hoveredId || restaurantId === selectedId;
       dot.classList.toggle("scale-125", isHighlighted);
-      dot.parentElement?.style.setProperty("z-index", isHighlighted ? "1" : "0");
+      dot.parentElement?.style.setProperty(
+        "z-index",
+        isHighlighted ? "1" : "0",
+      );
     });
   }, [hoveredId, selectedId, restaurants]);
 
@@ -149,7 +149,6 @@ export default function RestaurantMap({ restaurants = [] }) {
       zoom: 16,
       duration: 800,
     });
-    
   }, [selectedId, restaurants]);
 
   return (

@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import Button from "../button/button.component";
 import { X } from "lucide-react";
 import {
   DEFAULT_BOOKING_FORM,
@@ -8,17 +7,16 @@ import {
 import {
   OCCASION_OPTIONS,
   TABLE_VISIBILITY_OPTIONS,
-} from "@/store/booking/booking-constants";
+} from "@/lib/constants/booking.constants";
+import {
+  getLocalDateString,
+  getLocalTimeString,
+  formatTimeLabel,
+} from "@/lib/utils/formatters.utils";
 
-const TODAY_STR = new Date().toISOString().split("T")[0];
+import Button from "../button/button.component";
 
-/** "14:00" -> "2:00 PM" */
-const formatTimeLabel = (time24) => {
-  const [h, m] = time24.split(":").map(Number);
-  const period = h >= 12 ? "PM" : "AM";
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
-};
+// const TODAY_STR = new Date().toISOString().split("T")[0];
 
 /**
  * Booking form popup shown when a restaurant's "Reserve" button is clicked
@@ -58,12 +56,25 @@ const BookingFormModal = ({
 
   // Only offer times the restaurant is actually open, and if the chosen
   // date is today, drop any slots that have already passed.
+  // const availableTimes = useMemo(() => {
+  //   const times = restaurant?.time_opening ?? [];
+  //   if (form.date !== TODAY_STR) return times;
+  //   const nowStr = new Date().toTimeString().slice(0, 5); // "HH:MM"
+  //   return times.filter((t) => t > nowStr);
+  // }, [restaurant, form.date]);
+  const todayStr = getLocalDateString();
+
   const availableTimes = useMemo(() => {
     const times = restaurant?.time_opening ?? [];
-    if (form.date !== TODAY_STR) return times;
-    const nowStr = new Date().toTimeString().slice(0, 5); // "HH:MM"
-    return times.filter((t) => t > nowStr);
-  }, [restaurant, form.date]);
+
+    if (form.date !== todayStr) {
+      return times;
+    }
+
+    const nowStr = getLocalTimeString();
+
+    return times.filter((time) => time > nowStr);
+  }, [restaurant, form.date, todayStr]);
 
   if (!restaurant) return null;
 
@@ -232,7 +243,7 @@ const BookingFormModal = ({
                 <label className="block text-xs text-gray-500 mb-1">Date</label>
                 <input
                   type="date"
-                  min={TODAY_STR}
+                  min={todayStr}
                   required
                   value={form.date}
                   onChange={handleDateChange}

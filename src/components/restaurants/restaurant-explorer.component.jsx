@@ -3,16 +3,15 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
-import WrapperComponent from "@/components/wrapper/wrapper.component";
 import RestaurantCard from "@/components/restaurants/restaurant-card.component";
 import RestaurantFilters from "@/components/restaurants/restaurant-filters.component";
 import RestaurantDetailsPanel from "@/components/restaurants/restaurant-details-panel.component";
+import RestaurantPopupCard from "@/components/restaurants/restaurant-modal-card.component";
 import BookingFormModal from "@/components/booking/booking-form-modal.component";
 
 import { useRestaurants } from "@/hooks/useRestaurants";
 import { useRestaurantSelectionStore } from "@/store/restaurant/restaurant.store";
 import { useBookingStore } from "@/store/booking/booking.store";
-import RestaurantPopupCard from "@/components/restaurants/restaurant-modal-card.component";
 
 const RestaurantMap = dynamic(
   () => import("@/components/restaurants/restaurant-map.component"),
@@ -24,20 +23,13 @@ const RestaurantMap = dynamic(
   },
 );
 
-// other is an array now (trending/top can both be active at once), and
-// priceMin/priceMax replace the old fixed "$"/"$$" tiers.
-const DEFAULT_FILTERS = {
-  priceMin: null,
-  priceMax: null,
-  category: null,
-  other: [],
-};
-
 function RestaurantCardSkeleton() {
   return (
     <div className="rounded-xl border border-[#E5E1DB] bg-white p-4">
       <div className="h-5 w-3/4 animate-pulse rounded bg-[#F0EDE7]" />
+
       <div className="mt-2 h-4 w-1/2 animate-pulse rounded bg-[#F0EDE7]" />
+
       <div className="mt-2 h-4 w-1/4 animate-pulse rounded bg-[#F0EDE7]" />
     </div>
   );
@@ -45,23 +37,53 @@ function RestaurantCardSkeleton() {
 
 const RESTAURANT_SKELETONS = Array.from({ length: 6 }, (_, index) => index);
 
-export default function RestaurantsPage() {
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+export default function RestaurantExplorer({
+  initialRestaurants,
+  initialPage,
+  initialTotalCount,
+  initialFilters,
+}) {
+  const [filters, setFilters] = useState(initialFilters);
+
+  /*
+   * ------------------------------------------------------------
+   * Restaurant selection state
+   * ------------------------------------------------------------
+   */
 
   const hoveredId = useRestaurantSelectionStore((state) => state.hoveredId);
+
   const selectedId = useRestaurantSelectionStore((state) => state.selectedId);
+
   const detailsOpen = useRestaurantSelectionStore((state) => state.detailsOpen);
+
   const setHoveredId = useRestaurantSelectionStore(
     (state) => state.setHoveredId,
   );
+
   const select = useRestaurantSelectionStore((state) => state.select);
+
   const closePopup = useRestaurantSelectionStore((state) => state.closePopup);
+
   const closeDetails = useRestaurantSelectionStore(
     (state) => state.closeDetails,
   );
 
+  /*
+   * ------------------------------------------------------------
+   * Booking state
+   * ------------------------------------------------------------
+   */
+
   const bookingRestaurant = useBookingStore((state) => state.bookingRestaurant);
+
   const closeBooking = useBookingStore((state) => state.closeBooking);
+
+  /*
+   * ------------------------------------------------------------
+   * Restaurant data
+   * ------------------------------------------------------------
+   */
 
   const {
     restaurants,
@@ -72,10 +94,29 @@ export default function RestaurantsPage() {
     totalCount,
     loadMore,
     refetch,
-  } = useRestaurants(filters);
+  } = useRestaurants(
+    initialRestaurants,
+    initialTotalCount,
+    initialPage,
+    filters,
+  );
+
+  /*
+   * ------------------------------------------------------------
+   * Selected restaurant
+   * ------------------------------------------------------------
+   */
 
   const selectedRestaurant =
     restaurants.find((restaurant) => restaurant.id === selectedId) ?? null;
+
+  /*
+   * ------------------------------------------------------------
+   * Cleanup
+   *
+   * Reset UI state when leaving the restaurant page.
+   * ------------------------------------------------------------
+   */
 
   useEffect(() => {
     return () => {
@@ -84,22 +125,47 @@ export default function RestaurantsPage() {
     };
   }, []);
 
-  const handleClearFilters = () => {
-    setFilters(DEFAULT_FILTERS);
+  /*
+   * ------------------------------------------------------------
+   * Filter handlers
+   * ------------------------------------------------------------
+   */
+
+  const handleFiltersChange = (nextFilters) => {
+    setFilters(nextFilters);
+
+    // A filter change should also close the currently selected
+    // restaurant so we don't keep displaying details for a
+    // restaurant that may no longer exist in the filtered list.
+    useRestaurantSelectionStore.getState().reset();
   };
 
+  const handleClearFilters = () => {
+    setFilters(initialFilters);
+
+    useRestaurantSelectionStore.getState().reset();
+  };
+
+  /*
+   * ------------------------------------------------------------
+   * Render
+   * ------------------------------------------------------------
+   */
+
   return (
-    <WrapperComponent
-      maxWidth="none"
-      paddingX="sm"
-      className="flex lg:flex-row flex-col-reverse gap-2 bg-accent/40 pt-4"
-    >
+    <div className="flex w-full flex-col-reverse gap-2 lg:flex-row">
+      {/* ======================================================
+          RESTAURANT LIST
+          ====================================================== */}
+
       <div
         className={`relative h-[80vh] transition-all duration-300 ease-in-out ${
           detailsOpen ? "hidden lg:block lg:w-1/4" : "w-full lg:w-1/4"
         }`}
       >
-        <div className="h-44 z-20 pb-4">
+        {/* Header / Filters */}
+
+        <div className="z-20 h-44 pb-4">
           <h1 className="text-2xl font-semibold text-[#1F1D1B]">
             Search restaurants
           </h1>
@@ -107,35 +173,40 @@ export default function RestaurantsPage() {
           <div className="mt-2">
             <RestaurantFilters
               filters={filters}
-              onChange={setFilters}
+              onChange={handleFiltersChange}
               onClear={handleClearFilters}
             />
           </div>
         </div>
+
+        {/* Restaurant list */}
 
         {error ? (
           <div className="rounded-xl border border-[#E5E1DB] bg-white p-4">
             <p className="text-sm font-medium text-[#1F1D1B]">
               Couldn&apos;t load restaurants
             </p>
+
             <p className="mt-1 text-sm text-[#6B6660]">
               {error.message ?? "Something went wrong."}
             </p>
+
             <button
               type="button"
               onClick={refetch}
-              className="mt-3 rounded-full border border-[#1F1D1B] px-3 py-1.5 text-sm font-medium text-[#1F1D1B] transition-colors hover:bg-[#1F1D1B] hover:text-white"
+              className="mt-3 rounded-lg bg-[#C15B3E] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#A94D34]"
             >
               Try again
             </button>
           </div>
         ) : (
-          <div className="space-y-3 h-[calc(80vh-11rem)] overflow-y-auto">
+          <div className="h-[calc(80vh-11rem)] space-y-3 overflow-y-auto pr-1">
             {loading ? (
-              // <p className="text-sm text-[#6B6660]">Loading restaurants…</p>
-              RESTAURANT_SKELETONS.map((index) => (
-                <RestaurantCardSkeleton key={index} />
-              ))
+              <>
+                {RESTAURANT_SKELETONS.map((index) => (
+                  <RestaurantCardSkeleton key={index} />
+                ))}
+              </>
             ) : restaurants.length === 0 ? (
               <div className="rounded-xl border border-[#E5E1DB] bg-white p-6 text-center">
                 <h2 className="font-semibold text-[#1F1D1B]">
@@ -174,6 +245,8 @@ export default function RestaurantsPage() {
                   />
                 ))}
 
+                {/* Load more */}
+
                 {hasMore && (
                   <button
                     type="button"
@@ -197,9 +270,12 @@ export default function RestaurantsPage() {
         )}
       </div>
 
-      {/* Map: shrinks (and visually slides left) when the details panel opens. */}
+      {/* ======================================================
+          MAP
+          ====================================================== */}
+
       <section
-        className={`h-[45vh] min-h-80 lg:h-[80vh] ease-in-out lg:transition-[width,opacity] lg:duration-300 ${
+        className={`h-[45vh] min-h-80 ease-in-out lg:h-[80vh] lg:transition-[width,opacity] lg:duration-300 ${
           detailsOpen ? "hidden lg:block lg:w-1/2" : "w-full lg:w-3/4"
         }`}
       >
@@ -208,12 +284,12 @@ export default function RestaurantsPage() {
         </div>
       </section>
 
-      {/* Details panel: slides in from the right by animating from w-0 to
-          w-1/4 in lockstep with the map shrinking above. overflow-hidden
-          keeps its content clipped while collapsed instead of wrapping. */}
-      {/* Details */}
+      {/* ======================================================
+          DETAILS PANEL
+          ====================================================== */}
+
       {detailsOpen && (
-        <aside className="ease-in-out lg:transition-[width,opacity] lg:duration-300 w-full lg:h-[80vh] lg:w-1/4">
+        <aside className="w-full ease-in-out lg:h-[80vh] lg:w-1/4 lg:transition-[width,opacity] lg:duration-300">
           <RestaurantDetailsPanel
             restaurant={selectedRestaurant}
             onClose={closeDetails}
@@ -221,7 +297,10 @@ export default function RestaurantsPage() {
         </aside>
       )}
 
-      {/* Popup only shows for a quick preview — once "View full details" is clicked, detailsOpen takes over and the popup hides. */}
+      {/* ======================================================
+          QUICK POPUP
+          ====================================================== */}
+
       {!detailsOpen && (
         <RestaurantPopupCard
           restaurant={selectedRestaurant}
@@ -229,15 +308,16 @@ export default function RestaurantsPage() {
         />
       )}
 
-      {/* Booking modal — opened from the "Book a table" button inside
-          RestaurantDetailsPanel, entirely independent of the map/popup
-          selection state above. */}
+      {/* ======================================================
+          BOOKING MODAL
+          ====================================================== */}
+
       {bookingRestaurant && (
         <BookingFormModal
           restaurant={bookingRestaurant}
           onClose={closeBooking}
         />
       )}
-    </WrapperComponent>
+    </div>
   );
 }

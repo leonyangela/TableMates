@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import AuthLayout from "@/components/auth/auth-layout.component";
 import { loginWithEmail } from "@/lib/firebase/auth.service";
 import { getAuthErrorMessage } from "@/lib/firebase/auth-error-messages";
-import { isValidEmail } from "@/lib/utils/validators";
+import { isValidEmail } from "@/lib/utils/validators.utils";
 import { useRedirectIfAuthenticated } from "@/hooks/useRedirectIfAuthenticated";
 import Button from "@/components/button/button.component";
 

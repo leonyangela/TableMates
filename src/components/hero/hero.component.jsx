@@ -15,9 +15,10 @@ const Hero = () => {
         fill
         objectFit="cover"
         objectPosition="center"
+        className="z-20"
       />
-      <div className="w-full h-full bg-black/40 top-0 left-0 absolute"></div>
-      <div className="text-white z-20 text-center">
+      <div className="w-full h-full bg-black/40 top-0 left-0 absolute z-30"></div>
+      <div className="text-white z-40 text-center">
         <h1 className="text-3xl">
           Great food, one reservation away, <br />
           where great food meats begin.

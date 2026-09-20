@@ -1,6 +1,6 @@
 import Logo from "@/components/logo/logo.component";
 import FooterColumn from "./footer-columns.component";
-import { FOOTER_LINKS } from "@/components/footer/footer.constants";
+import { FOOTER_LINKS } from "@/lib/constants/footer.constants";
 
 export default function Footer() {
   return (

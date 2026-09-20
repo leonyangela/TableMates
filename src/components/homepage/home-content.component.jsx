@@ -8,10 +8,11 @@ import StepCard from "../cards/step-card.component";
 import RestaurantHomepage from "../restaurants/restaurant-home.component";
 import FeatureCard from "../cards/feature-card.component";
 
-import { FEATURES, STEPS } from "@/app/page.constants";
+import { FEATURES, STEPS } from "@/lib/constants/homepage.constants";
 
 import { ChevronRightIcon, Utensils } from "lucide-react";
 import Button from "../button/button.component";
+import { useRouter } from "next/navigation";
 
 const HowItWorks = () => {
   return (
@@ -84,6 +85,8 @@ const Testimoni = () => {
 };
 
 const DiningJourney = () => {
+  const router = useRouter();
+
   return (
     <section className="mt-10">
       <Header
@@ -108,7 +111,11 @@ const DiningJourney = () => {
             book a table, or join an open table to get started.
           </p>
 
-          <Button variant="primary" className="mt-4">
+          <Button
+            variant="primary"
+            className="mt-4"
+            onClick={() => router.push("/restaurants")}
+          >
             Discover restaurants
           </Button>
         </div>

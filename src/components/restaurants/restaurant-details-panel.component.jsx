@@ -1,14 +1,30 @@
 "use client";
+
 import Image from "next/image";
 import { MapPin, Utensils, X } from "lucide-react";
+
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import { useBookingStore } from "@/store/booking/booking.store";
+import {
+  formatOpeningHours,
+  formatPriceRange,
+} from "@/lib/utils/formatters.utils";
 import Button from "../button/button.component";
 import Pill from "../cards/pills.component";
+import { useState } from "react";
+import { Dialog, DialogAction, DialogCancel, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../dialog/dialog.component";
+
 export default function RestaurantDetailsPanel({ restaurant, onClose }) {
+  const router = useRouter();
+  const { user } = useAuth();
   const openBooking = useBookingStore((state) => state.openBooking);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+
   if (!restaurant) {
     return null;
   }
+
   const tags = [
     ...(Array.isArray(restaurant.tags) ? restaurant.tags : []),
     ...(Array.isArray(restaurant.features) ? restaurant.features : []),
@@ -16,9 +32,20 @@ export default function RestaurantDetailsPanel({ restaurant, onClose }) {
   const popularDishes = Array.isArray(restaurant.popular_dishes)
     ? restaurant.popular_dishes
     : [];
+  const priceLabel = formatPriceRange(restaurant.price_range);
+  const openingHoursLabel = formatOpeningHours(restaurant.time_opening);
+
+  const handleOpenBookingModal = () => {
+    if (!user) {
+      setLoginDialogOpen(true);
+      return;
+    } else {
+      openBooking(restaurant);
+    }
+  };
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-[#E5E1DB] bg-white">
-      {/* Content */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {/* Restaurant image */}
         <div className="relative aspect-[16/10] w-full overflow-hidden">
@@ -35,7 +62,7 @@ export default function RestaurantDetailsPanel({ restaurant, onClose }) {
               <Utensils className="h-10 w-10 text-[#9A938B]" />
             </div>
           )}
-          {/* Close button */}
+
           <div className="absolute right-3 top-3">
             <Button
               onClick={onClose}
@@ -47,33 +74,32 @@ export default function RestaurantDetailsPanel({ restaurant, onClose }) {
               className="bg-white/90 shadow-sm backdrop-blur-sm hover:bg-white"
             />
           </div>
-          {/* Trending badge */}
+
           {restaurant.trending && (
             <div className="absolute bottom-3 left-3">
               <Pill>Trending</Pill>
             </div>
           )}
         </div>
-        {/* Restaurant information */}
+
         <div className="p-5">
-          {/* Heading */}
           <div>
             <h2 className="text-xl font-semibold tracking-tight text-[#1F1D1B]">
               {restaurant.name ?? "Untitled restaurant"}
             </h2>
             <p className="mt-1 text-sm text-[#6B6660]">
-              {[restaurant.category, restaurant.priceRange]
+              {[restaurant.category, priceLabel]
                 .filter(Boolean)
-                .join(" · ")}
+                .join(" \u00b7 ")}
             </p>
           </div>
-          {/* Description */}
+
           {restaurant.short_description && (
             <p className="mt-4 text-sm leading-6 text-[#514C47]">
               {restaurant.short_description}
             </p>
           )}
-          {/* Tags */}
+
           {tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {tags.map((tag) => (
@@ -86,7 +112,7 @@ export default function RestaurantDetailsPanel({ restaurant, onClose }) {
               ))}
             </div>
           )}
-          {/* Popular dishes */}
+
           {popularDishes.length > 0 && (
             <section className="mt-6 border-t border-[#E5E1DB] pt-5">
               <div className="flex items-center gap-2">
@@ -107,17 +133,20 @@ export default function RestaurantDetailsPanel({ restaurant, onClose }) {
               </div>
             </section>
           )}
-          {/* Restaurant details */}
+
+          {/* Restaurant details — address is guarded (restaurant.address &&)
+              since it's not present in the sample data yet; add the field
+              to enable this row and future map/directions integration. */}
           <section className="mt-6 border-t border-[#E5E1DB] pt-5">
             <h3 className="text-sm font-semibold text-[#1F1D1B]">
               Restaurant details
             </h3>
             <div className="mt-3 space-y-3">
-              {restaurant.time_opening && (
+              {openingHoursLabel && (
                 <div className="flex justify-between gap-4 text-sm">
-                  <span className="text-[#6B6660]">Opens</span>
+                  <span className="text-[#6B6660]">Open</span>
                   <span className="font-medium text-[#1F1D1B]">
-                    {restaurant.time_opening}
+                    {openingHoursLabel}
                   </span>
                 </div>
               )}
@@ -131,11 +160,42 @@ export default function RestaurantDetailsPanel({ restaurant, onClose }) {
           </section>
         </div>
       </div>
-      {/* Sticky booking action */}
+
       <div className="shrink-0 border-t border-[#E5E1DB] bg-white p-4">
-        <Button onClick={() => openBooking(restaurant)} className="w-full">
+        <Button onClick={handleOpenBookingModal} className="w-full">
           Book a table
         </Button>
+
+        <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Login to book a table</DialogTitle>
+
+              <DialogDescription>
+                You need to be logged in before you can book a table at{" "}
+                <span className="font-medium text-[#1F1D1B]">
+                  {restaurant.name}
+                </span>
+                .
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter>
+              <DialogCancel onClick={() => setLoginDialogOpen(false)}>
+                Cancel
+              </DialogCancel>
+
+              <DialogAction
+                onClick={() => {
+                  router.push("/login")
+                  setLoginDialogOpen(false);
+                }}
+              >
+                Login
+              </DialogAction>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

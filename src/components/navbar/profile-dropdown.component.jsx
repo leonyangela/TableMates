@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 
 import NavLink from "@/components/navbar/nav-link.component";
-import { PROFILE_MENU_ITEMS } from "@/components/navbar/navbar.constants";
+import { PROFILE_MENU_ITEMS } from "@/lib/constants/navbar.constants";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useClickOutside } from "@/hooks/useClickOutside";

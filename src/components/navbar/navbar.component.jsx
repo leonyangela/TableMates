@@ -11,13 +11,13 @@ import NavLink from "@/components/navbar/nav-link.component";
 import MobileMenuButton from "@/components/navbar/mobile-menu.component";
 import ProfileDropdown from "@/components/navbar/profile-dropdown.component";
 
-import { NAVBAR_ITEMS, AUTH_ITEMS } from "@/components/navbar/navbar.constants";
+import { NAVBAR_ITEMS, AUTH_ITEMS } from "@/lib/constants/navbar.constants";
 
 export default function Navbar() {
   const pathname = usePathname();
   const { isLoggedIn, loading } = useAuth();
   const navRef = useRef(null);
-  
+
   const [openPath, setOpenPath] = useState(null);
   const menuOpen = openPath === pathname;
 

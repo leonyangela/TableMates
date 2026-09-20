@@ -1,109 +1,127 @@
+"use client";
+
 import { create } from "zustand";
 
-import { DEFAULT_BOOKING_FORM } from "@/store/booking/booking-constants";
-
-// Re-exported so BookingFormModal's existing import
-// (`{ DEFAULT_BOOKING_FORM, useBookingStore } from ".../useBookingStore"`)
-// keeps working without needing a second import line.
-export { DEFAULT_BOOKING_FORM };
+// ASSUMPTION: lib/firebase/config exports `auth` alongside `db` (the
+// standard `getAuth(app)` singleton). Store actions run outside React, so
+// they can't call the useAuth() hook — reading auth.currentUser directly
+// is the normal way to get the caller's uid from a Zustand action. Adjust
+// this import if your config file exposes auth differently.
+import { auth } from "@/lib/firebase/config";
+import { createBooking, updateBookingDocument } from "@/services/bookingService";
 
 /**
- * Drives the booking modal: which restaurant it's open for (null = closed),
- * the form's save/submission state, and the create/update calls
- * BookingFormModal triggers on submit.
- *
- * addBooking/updateBooking are stubbed with a fake delay below — wire them
- * up to your real booking persistence (Firestore or otherwise) once that's
- * ready. Everything else (opening/closing the modal from a "Book" button
- * anywhere in the app, save-in-progress state, the success screen) already
- * works end-to-end against these.
+ * The complete shape of BookingFormModal's form. Exported so both create
+ * mode (`DEFAULT_BOOKING_FORM`) and edit mode
+ * (`{ ...DEFAULT_BOOKING_FORM, ...initialValues }`) always start from a
+ * fully-populated object — no field the form reads is ever `undefined`
+ * on first render, regardless of what a given booking doc has.
  */
-export const useBookingStore = create((set, get) => ({
-  // Which restaurant the modal is open for. null means closed — this is
-  // the single source of truth for "is the modal open", so there's no
-  // separate boolean that could get out of sync with it.
-  bookingRestaurant: null,
-  // Set when editing an existing open table instead of creating a new
-  // booking (passed through to BookingFormModal as initialValues/isEditing).
-  editingBooking: null,
+export const DEFAULT_BOOKING_FORM = {
+  date: "",
+  time: "",
+  totalSeats: 1,
+  yourSeats: 1,
+  tableVisibility: "private", // "private" | "request_to_join" | "open_public"
+  tableDescription: "",
+  occasion: "",
+  otherOccasion: "",
+  name: "",
+  phone: "",
+  email: "",
+  notes: "",
+};
 
-  currentBooking: null,
+const INITIAL_SAVE_STATE = {
   isSaving: false,
   saveError: null,
-  bookingPreview: null, // null | "success" | "error"
+  bookingPreview: "idle", // "idle" | "success" | "error"
+};
 
-  openBooking: (restaurant, editingBooking = null) =>
+export const useBookingStore = create((set, get) => ({
+  // ---------------------------------------------------------------------
+  // Modal visibility — which restaurant's BookingFormModal is open, if
+  // any. RestaurantDetailsPanel calls openBooking() from its "Book a
+  // table" button; the restaurants page reads bookingRestaurant to decide
+  // whether to render the modal at all, and passes closeBooking as onClose.
+  // ---------------------------------------------------------------------
+  bookingRestaurant: null,
+
+  openBooking: (restaurant) =>
     set({
       bookingRestaurant: restaurant,
-      editingBooking,
       currentBooking: null,
-      bookingPreview: null,
-      saveError: null,
+      ...INITIAL_SAVE_STATE,
     }),
 
-  closeBooking: () =>
-    set({
-      bookingRestaurant: null,
-      editingBooking: null,
-      currentBooking: null,
-      bookingPreview: null,
-      saveError: null,
-    }),
+  closeBooking: () => set({ bookingRestaurant: null }),
 
-  setCurrentBooking: (payload) => set({ currentBooking: payload }),
+  // ---------------------------------------------------------------------
+  // Draft form state. BookingFormModal calls setCurrentBooking(payload)
+  // immediately before addBooking(restaurant) — Zustand's set() is
+  // synchronous, so by the time addBooking runs, get().currentBooking
+  // already reflects that payload without it needing to be passed as an
+  // argument.
+  // ---------------------------------------------------------------------
+  currentBooking: null,
 
+  setCurrentBooking: (booking) =>
+    set((state) => ({
+      currentBooking: { ...state.currentBooking, ...booking },
+    })),
+
+  // ---------------------------------------------------------------------
+  // Save state, surfaced by the modal as isSaving / saveError / bookingPreview.
+  // ---------------------------------------------------------------------
+  ...INITIAL_SAVE_STATE,
+
+  /** Create mode. */
   addBooking: async (restaurant) => {
-    const { currentBooking } = get();
+    const userId = auth.currentUser?.uid;
+    const form = get().currentBooking;
 
-    if (!currentBooking) {
-      return;
-    }
-
-    set({ isSaving: true, saveError: null });
+    set({ isSaving: true, saveError: null, bookingPreview: "idle" });
 
     try {
-      // TODO: replace with the real write (e.g. addDoc to a "bookings"
-      // Firestore collection, including restaurant?.id) once the booking
-      // backend is ready.
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      set({ isSaving: false, bookingPreview: "success" });
+      const booking = await createBooking({ restaurant, form, userId });
+      set({ isSaving: false, bookingPreview: "success", currentBooking: booking });
+      return booking;
     } catch (error) {
       console.error("Failed to create booking:", error);
       set({
         isSaving: false,
-        saveError: error.message ?? "Something went wrong.",
         bookingPreview: "error",
+        saveError: error.message ?? "Something went wrong creating your reservation.",
       });
+      return null;
     }
   },
 
-  updateBooking: async (bookingId, payload) => {
-    set({ isSaving: true, saveError: null });
+  /** Edit mode — bookingId + the partial update the modal already assembled. */
+  updateBooking: async (bookingId, updates) => {
+    set({ isSaving: true, saveError: null, bookingPreview: "idle" });
 
     try {
-      // TODO: replace with the real update (e.g. updateDoc on the existing
-      // booking document) once the booking backend is ready.
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      set({ isSaving: false, bookingPreview: "success" });
+      const booking = await updateBookingDocument(bookingId, updates);
+      set({ isSaving: false, bookingPreview: "success", currentBooking: booking });
+      return booking;
     } catch (error) {
       console.error("Failed to update booking:", error);
       set({
         isSaving: false,
-        saveError: error.message ?? "Something went wrong.",
         bookingPreview: "error",
+        saveError: error.message ?? "Something went wrong saving your changes.",
       });
+      return null;
     }
   },
 
+  // Called on unmount by the restaurants page. Only clears UI state — the
+  // saved booking itself lives in Firestore, nothing to undo here.
   reset: () =>
     set({
       bookingRestaurant: null,
-      editingBooking: null,
       currentBooking: null,
-      isSaving: false,
-      saveError: null,
-      bookingPreview: null,
+      ...INITIAL_SAVE_STATE,
     }),
 }));
