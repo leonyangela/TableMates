@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 import ProfileField from "@/components/profile/profile-field.component";
 import Button from "@/components/button/button.component";
@@ -13,8 +12,25 @@ import Header from "@/components/header/header.component";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useUpdateEmail } from "@/hooks/useUpdateEmail";
+import AdminTools from "@/components/admin/admin-tools.component";
+import Avatar from "@/components/profile/avatar.component";
+import ProfileStats from "@/components/profile/profile-stats.component";
+import EmailVerificationNotice from "@/components/profile/email-verification-notice.component";
+import { useDiningRecord } from "@/hooks/useDiningRecord";
+import {
+  DIETARY_OPTIONS,
+  PROFILE_LIMITS,
+} from "@/lib/constants/social.constants";
 
-const EMPTY_FORM = { name: "", email: "", phone: "", photoURL: "", bio: "" };
+const EMPTY_FORM = {
+  name: "",
+  email: "",
+  phone: "",
+  photoURL: "",
+  bio: "",
+  interests: "",
+  dietary: [],
+};
 
 function toForm(profile) {
   return {
@@ -23,7 +39,21 @@ function toForm(profile) {
     phone: profile?.phone || "",
     photoURL: profile?.photoURL || "",
     bio: profile?.bio || "",
+    // Edited as one comma-separated line, stored as a list.
+    interests: (profile?.interests ?? []).join(", "),
+    dietary: profile?.dietary ?? [],
   };
+}
+
+function parseInterests(text) {
+  return [
+    ...new Set(
+      String(text ?? "")
+        .split(",")
+        .map((interest) => interest.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 export default function ProfilePage() {
@@ -47,12 +77,18 @@ export default function ProfilePage() {
     cancelReauth,
   } = useUpdateEmail();
 
+  const {
+    record,
+    loading: recordLoading,
+    error: recordError,
+  } = useDiningRecord(user?.uid ?? null);
+
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace("/login");
+      router.replace("/login?redirect=/profile");
     }
   }, [authLoading, user, router]);
 
@@ -67,7 +103,11 @@ export default function ProfilePage() {
   // Saves the non-email fields to Firestore. Split out so it can be called
   // either immediately (email unchanged) or after a successful email change.
   const saveProfileFields = async ({ email }) => {
-    const success = await updateProfile({ ...form, email });
+    const success = await updateProfile({
+      ...form,
+      interests: parseInterests(form.interests),
+      email,
+    });
     if (success) setIsEditing(false);
   };
 
@@ -123,6 +163,7 @@ export default function ProfilePage() {
         title="Your account"
         description="View and update your details."
       />
+      <AdminTools />
 
       <div className="mt-8 max-w-3xl">
         {isLoading && !profile ? (
@@ -144,26 +185,19 @@ export default function ProfilePage() {
           <div className="bg-white border border-gray-200 rounded-2xl p-6">
             <div className="flex items-start justify-between gap-4 mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gray-100 overflow-hidden shrink-0">
-                  {profile?.photoURL ? (
-                    <Image
-                      src={profile.photoURL}
-                      alt={profile.name || "Profile"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xl font-semibold">
-                      {(profile?.name || profile?.email || "?")
-                        .charAt(0)
-                        .toUpperCase()}
-                    </div>
-                  )}
-                </div>
+                {/* Plain <img> (Avatar): photo URLs can be any host, which
+                    next/image would reject. */}
+                <Avatar
+                  name={profile?.name || profile?.email}
+                  photoURL={profile?.photoURL}
+                  size="lg"
+                />
                 <div>
                   <h2 className="text-xl font-semibold">
                     {profile?.name || "Add your name"}
                   </h2>
                   <p className="text-sm text-gray-500">{profile?.email}</p>
+                  <EmailVerificationNotice />
                 </div>
               </div>
 
@@ -242,12 +276,71 @@ export default function ProfilePage() {
                   </label>
                   <textarea
                     rows={3}
+                    maxLength={PROFILE_LIMITS.bio}
                     value={form.bio}
                     onChange={handleChange("bio")}
                     placeholder="Tell fellow diners a bit about yourself..."
                     className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"
                   />
+                  <p className="text-right text-xs text-gray-400">
+                    {form.bio.length}/{PROFILE_LIMITS.bio}
+                  </p>
                 </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    Interests (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.interests}
+                    onChange={handleChange("interests")}
+                    placeholder="e.g. Ramen, Wine, Board games, Hiking"
+                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Separate with commas — up to {PROFILE_LIMITS.interests}.
+                  </p>
+                </div>
+
+                <fieldset>
+                  <legend className="block text-xs text-gray-500 mb-1.5">
+                    Dietary preferences (optional)
+                  </legend>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DIETARY_OPTIONS.map((option) => {
+                      const isActive = form.dietary.includes(option);
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          aria-pressed={isActive}
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              dietary: isActive
+                                ? prev.dietary.filter((item) => item !== option)
+                                : [...prev.dietary, option],
+                            }))
+                          }
+                          className={`rounded-full border px-3 py-1 text-xs transition ${
+                            isActive
+                              ? "border-black bg-black text-white"
+                              : "border-gray-300 text-gray-600 hover:border-gray-400"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                <p className="text-xs text-gray-400">
+                  Your name, photo, about, interests and dietary preferences
+                  are shown to diners you share a table with. Your phone and
+                  email are never shown.
+                </p>
 
                 {(saveError || emailError) && (
                   <p className="text-sm text-red-600">
@@ -278,11 +371,41 @@ export default function ProfilePage() {
                 <ProfileField label="Phone" value={profile?.phone} />
                 <ProfileField label="Email" value={profile?.email} />
                 <ProfileField label="About you" value={profile?.bio} />
+                <ProfileField
+                  label="Interests"
+                  value={(profile?.interests ?? []).join(", ")}
+                />
+                <ProfileField
+                  label="Dietary preferences"
+                  value={(profile?.dietary ?? []).join(", ")}
+                />
               </div>
             )}
           </div>
         )}
       </div>
+
+      <section className="mt-6 mb-12 max-w-3xl rounded-2xl border border-gray-200 bg-white p-6">
+        <h2 className="text-lg font-semibold">Your dining record</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          This is what other diners see on your profile — except your join
+          requests, which only you can see.
+        </p>
+
+        <div className="mt-5">
+          {recordLoading ? (
+            <p className="text-sm text-gray-500">Loading your record...</p>
+          ) : recordError ? (
+            <p className="text-sm text-red-600">{recordError}</p>
+          ) : record ? (
+            <ProfileStats
+              profile={record.profile}
+              stats={record.stats}
+              requestStats={record.requestStats}
+            />
+          ) : null}
+        </div>
+      </section>
 
       <ReauthModal
         isOpen={needsReauth}

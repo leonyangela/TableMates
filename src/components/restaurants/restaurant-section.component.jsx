@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import RestaurantPreviewCard from "./restaurant-preview-card.component";
-import { ChevronRight } from "lucide-react";
-import Button from "../button/button.component";
 
+/**
+ * One homepage row of restaurant cards ("Trending now", "Top rated").
+ * Swipeable on small screens (scroll-snap), a grid from md up. The
+ * section heading and "explore all" link live in DiscoverRestaurants.
+ */
 export default function RestaurantSection({
   title,
   restaurants,
@@ -14,58 +16,50 @@ export default function RestaurantSection({
   emptyMessage = "No restaurants to show yet.",
 }) {
   return (
-    <section className="mx-auto py-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-grey-olive-800">{title}</h2>
-        <Link
-          href="/restaurants"
-          className="flex flex-row gap-0.5 text-sm items-end justify-stretch font-medium text-primary group hover:underline duration-300 transition-all ease-in-out"
-        >
-          See all restaurants{" "}
-          <ChevronRight
-            size={18}
-            className="group-hover:translate-x-0.5 duration-200 transition-all ease-in-out"
-          />
-        </Link>
-      </div>
+    <section className="pt-10">
+      <h3 className="flex items-center gap-3 font-oswald text-2xl font-bold uppercase text-grey-olive-950">
+        {title}
+        <span className="h-px flex-1 bg-grey-olive-100" />
+      </h3>
 
       {error ? (
-        <div className="mt-4 rounded-xl border border-accent bg-white p-4">
-          <p className="text-sm font-medium text-grey-olive-800">
+        <div className="mt-5 rounded-[1.5rem] bg-accent p-6">
+          <p className="text-sm font-medium text-grey-olive-950">
             Couldn&apos;t load restaurants
           </p>
-          <p className="pt-1 text-sm text-grey-olive-800">
+          <p className="pt-1 text-sm text-grey-olive-700">
             {error.message ?? "Something went wrong."}
           </p>
           {onRetry && (
-            <Button
-              variant="try-again"
-              size="regular"
+            <button
+              type="button"
               onClick={onRetry}
-              className="text-sm mt-2"
+              className="mt-3 rounded-full border border-grey-olive-300 bg-white px-4 py-2 text-sm font-medium hover:border-primary hover:text-primary"
             >
               Try again
-            </Button>
+            </button>
           )}
         </div>
       ) : loading ? (
-        <div className="pt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, index) => (
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
             <div
               key={index}
-              className="h-80 animate-pulse rounded-xl bg-accent"
+              className="h-96 animate-pulse rounded-[1.75rem] bg-accent"
             />
           ))}
         </div>
       ) : restaurants.length === 0 ? (
-        <p className="pt-4 text-sm text-grey-olive-700">{emptyMessage}</p>
+        <p className="pt-5 text-sm text-grey-olive-700">{emptyMessage}</p>
       ) : (
-        <div className="pt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="-mx-6 mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-2 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 lg:grid-cols-3">
           {restaurants.map((restaurant) => (
-            <RestaurantPreviewCard
-              restaurant={restaurant}
+            <div
               key={restaurant.id}
-            />
+              className="w-[78%] shrink-0 snap-start sm:w-[45%] md:w-auto"
+            >
+              <RestaurantPreviewCard restaurant={restaurant} />
+            </div>
           ))}
         </div>
       )}

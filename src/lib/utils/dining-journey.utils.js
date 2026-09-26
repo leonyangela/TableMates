@@ -35,3 +35,24 @@ export function formatDiningDateTime(dateStr, timeStr) {
 
   return `${WEEKDAY_MONTH_DAY_FORMAT.format(date)} \u00b7 ${formatTimeLabel(timeStr)}`;
 }
+
+/**
+ * True once a table's start time is at or before `now`. A table with no
+ * parseable date/time is treated as not started, so bad data hides
+ * nothing rather than silently dropping tables.
+ */
+export function hasTableStarted(table, now = new Date()) {
+  const start = combineDateAndTime(table?.date, table?.time);
+
+  return start ? start.getTime() <= now.getTime() : false;
+}
+
+/** Action id for removing one guest, shared by the hooks and the guest list UI. */
+export function removeGuestActionId(bookingId, guestId) {
+  return `remove:${bookingId}:${guestId}`;
+}
+
+/** Action id for a guest's seat-change request on one table. */
+export function seatChangeActionId(bookingId) {
+  return `seats:${bookingId}`;
+}

@@ -10,10 +10,19 @@ import {
 import { db } from "@/lib/firebase/config";
 import {
   DINING_STATUS,
+  JOIN_REQUEST_TYPE,
   MEMBERSHIP_ROLE,
   MEMBERSHIP_STATUS,
+  TABLE_STATUS,
+  getJoinRequestType,
+  isTableCancelled,
 } from "@/lib/constants/dining-journey.constants";
 import { combineDateAndTime } from "@/lib/utils/dining-journey.utils";
+import { getLatestRequest } from "@/lib/utils/join-eligibility.utils";
+import {
+  BOOKINGS_COLLECTION,
+  JOIN_REQUESTS_COLLECTION,
+} from "@/lib/constants/firestore-collections.constants";
 import moment from "moment";
 
 /**
@@ -42,8 +51,6 @@ import moment from "moment";
  *   booking.seatsAvailable + booking.seatsJoined summing to total capacity
  *   joinRequest.bookingId pointing back at the booking being requested
  */
-const BOOKINGS_COLLECTION = "bookings";
-const JOIN_REQUESTS_COLLECTION = "joinRequests";
 
 function desc(a, b) {
   return b - a;
@@ -80,6 +87,18 @@ function tableFromBooking(booking) {
     date: booking?.date ?? null,
     time: booking?.time ?? null,
     partySize: totalSeats,
+    status: booking?.status ?? TABLE_STATUS.ACTIVE,
+    // Recurring tables: every occurrence is its own booking, grouped by
+    // seriesId (see bookingService.createBooking).
+    seriesId: booking?.seriesId ?? null,
+    seriesIndex: booking?.seriesIndex ?? null,
+    seriesCount: booking?.seriesCount ?? null,
+    repeat: booking?.repeat ?? null,
+    // Everyone at the table (host + confirmed guests) — who can rate whom
+    // after the meal.
+    participantIds: [booking?.userId, ...(booking?.joinedUserIds ?? [])].filter(
+      Boolean,
+    ),
   };
 }
 
@@ -87,21 +106,33 @@ function tableFromBooking(booking) {
  * Maps an entry's rawStatus to what the UI shows. rawStatus is "accepted"
  * for a host's own table and for any table the guest is already in
  * joinedUserIds for — neither of those is ever "pending," so both are
- * time-derived against `now` the same way, flipping from "in_progress" to
- * "completed" the instant the table's start time passes. Only a
- * joinRequest still sitting in "pending"/"rejected" reports that directly.
+ * time-derived against `now` the same way, splitting into coming_soon /
+ * in_progress / completed by comparing against a 2-hour dining window.
+ * Only a joinRequest still sitting in "pending"/"rejected" reports that
+ * directly.
  */
 export function deriveDiningStatus(entry, now = new Date()) {
+  // A cancelled table is cancelled for everyone on it — host, guests and
+  // anyone whose request it closed.
+  if (isTableCancelled(entry.table)) {
+    return DINING_STATUS.CANCELLED;
+  }
+
   if (entry.rawStatus === MEMBERSHIP_STATUS.REJECTED) {
     return DINING_STATUS.REJECTED;
   }
 
+  const tableTime = combineDateAndTime(entry.table?.date, entry.table?.time);
+
   if (entry.rawStatus === MEMBERSHIP_STATUS.PENDING) {
-    return DINING_STATUS.AWAITING_CONFIRMATION;
+    // Never answered before the table started: it can't be accepted any
+    // more, so it expires instead of waiting forever.
+    return tableTime && now >= tableTime
+      ? DINING_STATUS.EXPIRED
+      : DINING_STATUS.AWAITING_CONFIRMATION;
   }
 
-  const tableTime = combineDateAndTime(entry.table?.date, entry.table?.time);
-  const current = moment();
+  const current = moment(now);
   const start = moment(tableTime);
   const end = moment(tableTime).add(2, "hour"); // Assuming a 2-hour dining window
 
@@ -119,14 +150,24 @@ export function deriveDiningStatus(entry, now = new Date()) {
   return status;
 }
 
-function bookingToEntry(booking, role) {
+function bookingToEntry(
+  booking,
+  role,
+  pendingRequests = [],
+  rawStatus = MEMBERSHIP_STATUS.ACCEPTED,
+) {
   return {
     id: booking.id,
     bookingId: booking.id,
     role,
-    rawStatus: MEMBERSHIP_STATUS.ACCEPTED,
+    rawStatus,
     table: tableFromBooking(booking),
     sortMillis: bookingMillis(booking),
+    // Only ever populated for role === HOST — see getDiningJourney. A
+    // guest's own entry has no requests to manage, so this stays [] for
+    // them rather than being omitted, so DiningJourneyCard can render
+    // unconditionally off `entry.pendingRequests` either way.
+    pendingRequests,
   };
 }
 
@@ -135,70 +176,103 @@ function joinRequestToEntry(request, booking) {
     id: request.id,
     bookingId: request.bookingId ?? null,
     role: MEMBERSHIP_ROLE.GUEST,
-    rawStatus:
-      request.status === MEMBERSHIP_STATUS.REJECTED
-        ? MEMBERSHIP_STATUS.REJECTED
-        : MEMBERSHIP_STATUS.PENDING,
+    rawStatus: [MEMBERSHIP_STATUS.REJECTED, MEMBERSHIP_STATUS.CANCELLED].includes(
+      request.status,
+    )
+      ? request.status
+      : MEMBERSHIP_STATUS.PENDING,
     table: booking ? tableFromBooking(booking) : {},
     sortMillis: booking
       ? bookingMillis(booking)
       : (request.createdAt?.toMillis?.() ?? 0),
+    pendingRequests: [],
+    // The guest's own request, so a pending one can be edited from the
+    // details modal until the host answers.
+    request,
   };
 }
 
 /**
  * Every table a user has created or is involved with, most-imminent/most-
- * recent first. Three queries, each shaped to match a `rule` above exactly
+ * recent first. Four queries, each shaped to match a `rule` above exactly
  * rather than approximated:
  *
- *  1. bookings where userId == uid           -> tables they host
+ *  1. bookings where userId == uid              -> tables they host
  *  2. bookings where joinedUserIds contains uid -> tables they've joined
  *     (public tables directly, or approved private/request-to-join ones)
- *  3. joinRequests where guestId == uid        -> pending/rejected requests
+ *  3. joinRequests where guestId == uid          -> their own pending/rejected requests
+ *  4. joinRequests where hostId == uid && status == pending
+ *                                                 -> incoming requests on
+ *     their own hosted tables, so DiningJourneyCard can offer the same
+ *     accept/reject UI the community page does, without the guest having
+ *     to leave this page.
  *
  * Query (3) only keeps pending/rejected: an accepted request means the
  * host has since added this guest to the booking's joinedUserIds, which
  * query (2) already surfaces — including both would double-list the same
  * table.
  *
- * All three are single-field equality/array-contains filters against a
- * field named directly in your rules, so none of them need a composite
- * index or run into the permission model at all — as long as `userId`
- * passed in here really is `auth.currentUser.uid` from an auth state
- * that's already resolved. Firing this before Firebase Auth has finished
- * restoring its session (e.g. straight from a `user` that's momentarily
- * stale) will make the joinRequests query fail with the same
- * "permission-denied" you just saw, even though the rule itself is fine.
+ * All four are single-field or two-field equality filters against fields
+ * named directly in your rules, so none of them need a composite index —
+ * Firestore's automatic per-field indexes support a zigzag merge across
+ * multiple `==` filters with no extra index required, as long as nothing
+ * else (a range filter, orderBy, array-contains alongside another filter)
+ * is mixed in.
  */
-export async function getDiningJourney(userId) {
+export async function getDiningJourney(userId, { blockedUserIds = [] } = {}) {
   if (!userId) {
     return [];
   }
 
-  const [hostedSnap, joinedSnap, requestsSnap] = await Promise.all([
-    getDocs(
-      query(collection(db, BOOKINGS_COLLECTION), where("userId", "==", userId)),
-    ),
-    getDocs(
-      query(
-        collection(db, BOOKINGS_COLLECTION),
-        where("joinedUserIds", "array-contains", userId),
+  const [hostedSnap, joinedSnap, requestsSnap, hostPendingSnap] =
+    await Promise.all([
+      getDocs(
+        query(
+          collection(db, BOOKINGS_COLLECTION),
+          where("userId", "==", userId),
+        ),
       ),
-    ),
-    getDocs(
-      query(
-        collection(db, JOIN_REQUESTS_COLLECTION),
-        where("guestId", "==", userId),
+      getDocs(
+        query(
+          collection(db, BOOKINGS_COLLECTION),
+          where("joinedUserIds", "array-contains", userId),
+        ),
       ),
-    ),
-  ]);
+      getDocs(
+        query(
+          collection(db, JOIN_REQUESTS_COLLECTION),
+          where("guestId", "==", userId),
+        ),
+      ),
+      getDocs(
+        query(
+          collection(db, JOIN_REQUESTS_COLLECTION),
+          where("hostId", "==", userId),
+          where("status", "==", MEMBERSHIP_STATUS.PENDING),
+        ),
+      ),
+    ]);
+
+  const hostPendingByBooking = new Map();
+  hostPendingSnap.docs.map(toEntity).forEach((request) => {
+    if (blockedUserIds.includes(request.guestId)) return;
+    const list = hostPendingByBooking.get(request.bookingId) ?? [];
+    list.push(request);
+    hostPendingByBooking.set(request.bookingId, list);
+  });
 
   const hostedBookingIds = new Set();
   const hostedEntries = hostedSnap.docs.map((bookingDoc) => {
     const booking = toEntity(bookingDoc);
     hostedBookingIds.add(booking.id);
-    return bookingToEntry(booking, MEMBERSHIP_ROLE.HOST);
+    return bookingToEntry(
+      booking,
+      MEMBERSHIP_ROLE.HOST,
+      hostPendingByBooking.get(booking.id) ?? [],
+    );
   });
+
+  const myRequests = requestsSnap.docs.map(toEntity);
 
   const joinedEntries = joinedSnap.docs
     .map(toEntity)
@@ -206,36 +280,73 @@ export async function getDiningJourney(userId) {
     // usually also in their own joinedUserIds), but skip a duplicate if
     // it ever happens rather than showing the same table twice.
     .filter((booking) => !hostedBookingIds.has(booking.id))
-    .map((booking) => bookingToEntry(booking, MEMBERSHIP_ROLE.GUEST));
+    .map((booking) => ({
+      ...bookingToEntry(booking, MEMBERSHIP_ROLE.GUEST),
+      // The guest's most recent seat change on this table (pending, or
+      // the host's answer) — older ones are superseded by the latest.
+      seatChangeRequest: getLatestRequest(
+        myRequests,
+        booking.id,
+        JOIN_REQUEST_TYPE.SEAT_CHANGE,
+      ),
+    }));
 
   const joinedBookingIds = new Set(
     joinedEntries.map((entry) => entry.bookingId),
   );
 
-  const pendingOrRejected = requestsSnap.docs
-    .map(toEntity)
+  // One entry per table the user has requested but isn't currently at,
+  // from their LATEST join request there: pending -> awaiting
+  // confirmation, rejected -> rejected. Earlier requests to the same
+  // table are history the latest one supersedes (e.g. rejected, then
+  // requested again). A latest request that's accepted while the user
+  // isn't at the table means the host later removed them — removal isn't
+  // a rejection, so that table simply doesn't appear. Seat changes never
+  // become their own entries (attached to the joined entry above).
+  const requestedBookingIds = [
+    ...new Set(
+      myRequests
+        .filter(
+          (request) =>
+            getJoinRequestType(request) === JOIN_REQUEST_TYPE.JOIN &&
+            request.bookingId &&
+            !joinedBookingIds.has(request.bookingId) &&
+            !hostedBookingIds.has(request.bookingId),
+        )
+        .map((request) => request.bookingId),
+    ),
+  ];
+
+  // Accepted-but-not-joined = removed or left; withdrawn by the guest =
+  // nothing to show. A request closed because the host cancelled the
+  // table is kept (as cancelled) — filtered once the booking is loaded.
+  const latestRequests = requestedBookingIds
+    .map((bookingId) => getLatestRequest(myRequests, bookingId))
     .filter((request) => request.status !== MEMBERSHIP_STATUS.ACCEPTED);
 
   // Bookings are publicly readable, so fetching the referenced booking for
   // display info is safe even though this request belongs to someone
-  // else's table.
+  // else's table. Mapped in the same order as latestRequests.
   const referencedBookings = await Promise.all(
-    pendingOrRejected.map((request) =>
-      request.bookingId
-        ? getDoc(doc(db, BOOKINGS_COLLECTION, request.bookingId))
-        : null,
+    latestRequests.map((request) =>
+      getDoc(doc(db, BOOKINGS_COLLECTION, request.bookingId)),
     ),
   );
 
-  const requestEntries = pendingOrRejected
-    .filter((request) => !joinedBookingIds.has(request.bookingId)) // safety net against the same double-count
+  const requestEntries = latestRequests
     .map((request, index) => {
       const bookingSnap = referencedBookings[index];
       const booking = bookingSnap?.exists() ? toEntity(bookingSnap) : null;
-      return joinRequestToEntry(request, booking);
-    });
+      return { request, booking };
+    })
+    .filter(
+      ({ request, booking }) =>
+        request.status !== MEMBERSHIP_STATUS.CANCELLED ||
+        isTableCancelled(booking),
+    )
+    .map(({ request, booking }) => joinRequestToEntry(request, booking));
 
-  return [...hostedEntries, ...joinedEntries, ...requestEntries].sort((a, b) =>
-    desc(a.sortMillis, b.sortMillis),
+  return [...hostedEntries, ...joinedEntries, ...requestEntries].sort(
+    (a, b) => desc(a.sortMillis, b.sortMillis),
   );
 }

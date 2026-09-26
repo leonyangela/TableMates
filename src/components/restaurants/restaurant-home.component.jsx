@@ -19,7 +19,7 @@ export default function RestaurantHomepage() {
   });
 
   return (
-    <main>
+    <div>
       {/* Trending is purely editorial (the `trending` flag) — hidden
           entirely rather than backfilled when nothing is flagged, so it
           never misleadingly shows unrelated restaurants. */}
@@ -45,6 +45,6 @@ export default function RestaurantHomepage() {
           onRetry={refetchTopRated}
         />
       )}
-    </main>
+    </div>
   );
 }

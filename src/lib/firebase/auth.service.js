@@ -1,31 +1,71 @@
 import {
-  signInWithEmailAndPassword,
+  EmailAuthProvider,
   createUserWithEmailAndPassword,
-  updateProfile,
-  signOut,
   reauthenticateWithCredential,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
   updateEmail,
+  updateProfile,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
+import { saveUserProfile } from "@/lib/firebase/firestore.service";
+import { syncPublicProfile } from "@/services/profileService";
 
 export function loginWithEmail(email, password) {
-  return signInWithEmailAndPassword(auth, email, password);
+  return signInWithEmailAndPassword(auth, email.trim(), password);
 }
 
+/**
+ * Creates the account, then everything that should exist for a new user
+ * before they're sent anywhere:
+ *  - the display name (Firebase can't take it at creation time),
+ *  - their private users/{uid} doc (name + email),
+ *  - their public profile, with their real name — onAuthStateChanged
+ *    fires before updateProfile finishes, so SessionEffects may already
+ *    have created it from the email prefix; syncing here corrects it,
+ *  - a verification email (best-effort: never fails the sign-up).
+ */
 export async function signUpWithEmail(email, password, displayName) {
+  const name = displayName.trim();
   const credential = await createUserWithEmailAndPassword(
     auth,
-    email,
+    email.trim(),
     password,
   );
+  const { user } = credential;
 
-  // Firebase doesn't take displayName in createUserWithEmailAndPassword —
-  // it has to be set as a separate call right after account creation.
-  if (displayName) {
-    await updateProfile(credential.user, { displayName });
+  if (name) {
+    await updateProfile(user, { displayName: name });
+  }
+
+  await Promise.all([
+    saveUserProfile(user.uid, { name, email: user.email }),
+    syncPublicProfile(user, { displayName: name, photoURL: "" }),
+  ]);
+
+  try {
+    await sendEmailVerification(user);
+  } catch (error) {
+    console.error("Couldn't send verification email:", error);
   }
 
   return credential;
+}
+
+/**
+ * Sends a password reset link. Firebase's email-enumeration protection
+ * may report success even for unknown emails — callers should show the
+ * same "if an account exists…" message either way.
+ */
+export function sendPasswordReset(email) {
+  return sendPasswordResetEmail(auth, email.trim());
+}
+
+export function resendVerificationEmail() {
+  const user = requireCurrentUser();
+  return sendEmailVerification(user);
 }
 
 export function logout() {

@@ -1,7 +1,6 @@
 "use client";
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-import Button from "../button/button.component";
 
 const testimonials = [
   {
@@ -54,19 +53,20 @@ const testimonials = [
   },
 ];
 
-const TestimonialCard = ({ quote, name, restaurant, image }) => (
-  <article className="flex h-full min-h-60 flex-col justify-between rounded-md border border-gray-200 bg-white p-4">
-    <div className="relative">
-      <div className="absolute -top-16 -left-10 z-20 mb-2 text-gray-300">
-        <Quote sx={{ fontSize: 120 }} />
-      </div>
-      <p className="relative z-40 text-base text-gray-800">{quote}</p>
+const TestimonialCard = ({ quote, name, restaurant }) => (
+  <article className="flex h-full min-h-72 flex-col justify-between rounded-[1.75rem] bg-accent p-6">
+    <div>
+      <Quote size={40} className="fill-primary text-primary" />
+      <p className="mt-4 text-base leading-7 text-grey-olive-800">{quote}</p>
     </div>
 
-    <div className="pt-2 flex items-center gap-3">
+    <div className="mt-6 flex items-center gap-3 border-t border-rosy-copper-200 pt-4">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary font-oswald text-lg font-bold text-white">
+        {name.charAt(0)}
+      </span>
       <div>
-        <p className="text-sm font-medium text-gray-900">{name}</p>
-        <p className="text-sm text-gray-500">{restaurant}</p>
+        <p className="text-sm font-semibold text-grey-olive-950">{name}</p>
+        <p className="text-xs text-grey-olive-600">Dined at {restaurant}</p>
       </div>
     </div>
   </article>
@@ -75,14 +75,18 @@ const TestimonialCard = ({ quote, name, restaurant, image }) => (
 const Testimonials = () => {
   const carouselRef = useRef(null);
   const [itemsPerView, setItemsPerView] = useState(3);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // The index the user last navigated to. It can exceed maxIndex after
+  // the viewport widens (more cards per view), so what's shown is always
+  // the clamped `currentIndex` below — derived during render rather than
+  // corrected in an effect, which would render the wrong slide first.
+  const [requestedIndex, setCurrentIndex] = useState(0);
   const [dragStartX, setDragStartX] = useState(null);
 
   useEffect(() => {
     const updateItemsPerView = () => {
       const width = window.innerWidth;
       if (width < 640) setItemsPerView(1);
-      else if (width < 1024) setItemsPerView(2);
+      else if (width < 1280) setItemsPerView(2); // matches the card widths below (xl: 1/3)
       else setItemsPerView(3);
     };
 
@@ -92,10 +96,7 @@ const Testimonials = () => {
   }, []);
 
   const maxIndex = Math.max(testimonials.length - itemsPerView, 0);
-
-  useEffect(() => {
-    setCurrentIndex((prev) => Math.min(prev, maxIndex));
-  }, [maxIndex]);
+  const currentIndex = Math.min(requestedIndex, maxIndex);
 
   const goTo = (index) => {
     setCurrentIndex(Math.max(0, Math.min(index, maxIndex)));
@@ -123,55 +124,54 @@ const Testimonials = () => {
   const totalPages = maxIndex + 1;
 
   return (
-    <section className="flex flex-row gap-10">
-      <div className="w-2/6 flex flex-col justify-between">
+    <section className="flex flex-col gap-10 lg:flex-row">
+      <div className="flex flex-col justify-between lg:w-2/6">
         <div>
-          <h1 className="self-start uppercase font-bold text-primary">
+          <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-info">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             From our community
-          </h1>
-          <h1 className="self-baseline text-4xl font-bold uppercase pt-2">
+          </span>
+          <h2 className="mt-4 font-oswald text-4xl font-bold uppercase leading-none tracking-tight text-grey-olive-950 md:text-5xl">
             Good food is better together.
-          </h1>
-          <p className="pt-2">
+          </h2>
+          <p className="mt-4 text-base leading-7 text-grey-olive-600">
             Real experiences from people finding their next favourite table.
           </p>
         </div>
 
-        <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-2">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="min-w-4 text-center font-medium text-primary">
+        <div className="mt-8 flex items-center justify-between border-t border-grey-olive-100 pt-4">
+          <div className="flex items-baseline gap-2">
+            <span className="font-oswald text-3xl font-bold text-primary">
               {String(currentPage).padStart(2, "0")}
             </span>
-            <span className="text-grey-olive-300">/</span>
-            <span className="text-grey-olive-500">
-              {String(totalPages).padStart(2, "0")}
+            <span className="text-grey-olive-400">
+              / {String(totalPages).padStart(2, "0")}
             </span>
           </div>
 
-          <div className="flex gap-3">
-            <Button
+          <div className="flex gap-2">
+            <button
+              type="button"
               onClick={() => goTo(currentIndex - 1)}
               disabled={currentIndex === 0}
               aria-label="Previous testimonial"
-              variant="navigation-controls"
-              size="rounded"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-grey-olive-200 text-grey-olive-950 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ChevronLeft />
-            </Button>
-
-            <Button
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              type="button"
               onClick={() => goTo(currentIndex + 1)}
               disabled={currentIndex === maxIndex}
               aria-label="Next testimonial"
-              variant="navigation-controls"
-              size="rounded"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-rosy-copper-950 text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ChevronRight />
-            </Button>
+              <ChevronRight size={20} />
+            </button>
           </div>
         </div>
       </div>
-      <div className="w-4/6">
+      <div className="min-w-0 lg:w-4/6">
         <div
           ref={carouselRef}
           className="cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing"
@@ -186,7 +186,7 @@ const Testimonials = () => {
             {testimonials.map((testimonial) => (
               <div
                 key={testimonial.name}
-                className="shrink-0 pr-6 last:pr-0 sm:w-1/2 lg:w-1/3"
+                className="w-full shrink-0 pr-4 sm:w-1/2 lg:w-1/2 xl:w-1/3"
               >
                 <TestimonialCard {...testimonial} />
               </div>

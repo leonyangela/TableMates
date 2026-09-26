@@ -6,6 +6,7 @@ import {
   getUserProfile,
   saveUserProfile,
 } from "@/lib/firebase/firestore.service";
+import { syncPublicProfile } from "@/services/profileService";
 
 export function useUserProfile() {
   const { user } = useAuth();
@@ -66,6 +67,14 @@ export function useUserProfile() {
       setSaveError(null);
       try {
         await saveUserProfile(user.uid, updates);
+        // What other diners see (publicProfiles/{uid}) — never phone/email.
+        await syncPublicProfile(user, {
+          displayName: updates.name,
+          photoURL: updates.photoURL,
+          bio: updates.bio,
+          interests: updates.interests,
+          dietary: updates.dietary,
+        });
         setProfile((prev) => ({ ...prev, ...updates }));
         return true;
       } catch (err) {

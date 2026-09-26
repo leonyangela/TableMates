@@ -4,7 +4,7 @@ export default function FooterLink({ href, label }) {
   return (
     <Link
       href={href}
-      className="block hover:font-bold cursor-pointer transition-all duration-100 ease-in-out"
+      className="text-sm text-accent/80 transition hover:text-white"
     >
       {label}
     </Link>

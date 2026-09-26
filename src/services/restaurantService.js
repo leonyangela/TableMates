@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   documentId,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -16,6 +17,16 @@ import {
   PAGE_SIZE,
   TOP_RATED_MIN_RATING,
 } from "@/lib/constants/restaurant.constants";
+import {
+  getPrimarySearchToken,
+  getSearchTokens,
+  matchesSearch,
+} from "@/lib/utils/restaurant-search.utils";
+import {
+  META_COLLECTION,
+  RESTAURANT_CATEGORIES_DOC_ID,
+  toCategoryList,
+} from "@/lib/utils/restaurant-categories.utils";
 
 const RESTAURANTS_COLLECTION = "restaurants";
 
@@ -32,16 +43,38 @@ const RESTAURANTS_COLLECTION = "restaurants";
  * filter never needs a composite index), and everything else — price
  * range, trending, top rated — is filtered client-side per page below.
  * ---------------------------------------------------------------------- */
-function buildRestaurantsQuery(filters, cursorId) {
-  const constraints = [];
+/**
+ * The server-side part of a restaurants query, shared by the page fetch,
+ * the has-more lookahead and the count so they can never disagree.
+ *
+ * Searching: `searchKeywords array-contains <token>` (see
+ * restaurant-search.utils) searches the whole collection. Category is
+ * then applied client-side instead — array-contains plus an equality on
+ * another field would need a composite index, and search results are
+ * already a small set.
+ *
+ * Browsing: `category` is the only server-side constraint (a single
+ * equality filter never needs a composite index).
+ */
+function baseConstraints(filters) {
+  const tokens = getSearchTokens(filters.search);
 
-  if (filters.category) {
-    constraints.push(where("category", "==", filters.category));
+  if (tokens.length > 0) {
+    return [
+      where("searchKeywords", "array-contains", getPrimarySearchToken(tokens)),
+    ];
   }
 
+  return filters.category ? [where("category", "==", filters.category)] : [];
+}
+
+function buildRestaurantsQuery(filters, cursorId) {
+  const constraints = baseConstraints(filters);
+
   // Ordering by document ID needs no additional index even alongside the
-  // one equality filter above (every collection has an implicit index on
-  // it), and gives startAfter() a stable, always-unique cursor.
+  // one equality/array-contains filter above (every single-field index
+  // already ends in document ID), and gives startAfter() a stable,
+  // always-unique cursor.
   constraints.push(orderBy(documentId()));
   constraints.push(limit(PAGE_SIZE));
 
@@ -71,8 +104,33 @@ function matchesPriceRange(restaurant, priceMin, priceMax) {
   return true;
 }
 
-/** Applies every client-side-only filter dimension (price, trending, top rated) to one restaurant. */
+/**
+ * Filters that can't run server-side for the current query: price,
+ * trending, top rated — plus, while searching, category and any extra
+ * search words beyond the one Firestore queried by.
+ */
+function hasClientOnlyFilters(filters) {
+  const tokens = getSearchTokens(filters.search);
+
+  return (
+    filters.priceMin != null ||
+    filters.priceMax != null ||
+    (filters.other ?? []).length > 0 ||
+    (tokens.length > 0 && (Boolean(filters.category) || tokens.length > 1))
+  );
+}
+
+/** Applies every client-side-only filter dimension to one restaurant. */
 function matchesClientFilters(restaurant, filters) {
+  const tokens = getSearchTokens(filters.search);
+
+  if (tokens.length > 0) {
+    if (!matchesSearch(restaurant, tokens)) return false;
+    if (filters.category && restaurant.category !== filters.category) {
+      return false;
+    }
+  }
+
   if (!matchesPriceRange(restaurant, filters.priceMin, filters.priceMax)) {
     return false;
   }
@@ -163,11 +221,7 @@ const MAX_PAGE_FETCHES = 5;
 async function hasMoreAfterCursor(filters, cursorId) {
   if (!cursorId) return false;
 
-  const constraints = [];
-
-  if (filters.category) {
-    constraints.push(where("category", "==", filters.category));
-  }
+  const constraints = baseConstraints(filters);
 
   constraints.push(orderBy(documentId()));
   constraints.push(startAfter(cursorId));
@@ -246,24 +300,53 @@ export async function getRestaurantById(id) {
 }
 
 /**
- * Approximate count for the current filters: reads every category-matched
- * document to apply the client-side filters, same cost profile as
- * getHomepageRestaurantSections below. Fine at small/medium scale; if the
- * collection grows large and an exact count matters, a Firestore
- * aggregation query (getCountFromServer) only works for the category
- * constraint alone, not combined with price/trending/top.
+ * Total restaurants for the current filters/search, for the "Showing X of
+ * Y" label.
+ *
+ * When everything is expressible server-side (plain browsing, a category,
+ * or a one-word search), this is a Firestore count aggregation — no
+ * documents are downloaded. Only when client-side filters are active
+ * (price, trending, top rated, extra search words) does it read the
+ * server-side matches to count what passes them; for a search that's
+ * just the matching restaurants, never the whole collection.
  */
 export async function getRestaurantsCount(filters = {}) {
-  const constraints = filters.category
-    ? [where("category", "==", filters.category)]
-    : [];
-  const snapshot = await getDocs(
-    query(collection(db, RESTAURANTS_COLLECTION), ...constraints),
+  const baseQuery = query(
+    collection(db, RESTAURANTS_COLLECTION),
+    ...baseConstraints(filters),
   );
 
+  if (!hasClientOnlyFilters(filters)) {
+    const snapshot = await getCountFromServer(baseQuery);
+    return snapshot.data().count;
+  }
+
+  const snapshot = await getDocs(baseQuery);
+
   return snapshot.docs
-    .map((restaurantDoc) => restaurantDoc.data())
+    .map(toRestaurant)
     .filter((restaurant) => matchesClientFilters(restaurant, filters)).length;
+}
+
+/**
+ * Every category in the restaurant data, alphabetical, for the category
+ * filter. Reads the one meta/restaurantCategories doc that seeding and the
+ * backfill keep up to date — not the whole collection. Only if that doc
+ * doesn't exist yet (e.g. data seeded before it did) does it fall back to
+ * deriving the list from the restaurants themselves, once.
+ */
+export async function getRestaurantCategories() {
+  const metaSnap = await getDoc(
+    doc(db, META_COLLECTION, RESTAURANT_CATEGORIES_DOC_ID),
+  );
+  const stored = metaSnap.exists() ? metaSnap.data().categories : null;
+
+  if (Array.isArray(stored) && stored.length > 0) {
+    return toCategoryList(stored);
+  }
+
+  const snapshot = await getDocs(collection(db, RESTAURANTS_COLLECTION));
+  return toCategoryList(snapshot.docs.map((item) => item.data().category));
 }
 
 /* -----------------------------------------------------------------------

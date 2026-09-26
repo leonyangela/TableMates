@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import WrapperComponent from "@/components/wrapper/wrapper.component";
 import Button from "@/components/button/button.component";
 import DiningJourneyCard from "@/components/dining-journey/dining-journey-card.component";
+import BookingFormModal from "@/components/booking/booking-form-modal.component";
 
 // ASSUMPTION: useAuth returns { user, loading }, matching the shape you'd
 // need for an initial-auth-check flash guard. If it only returns { user },
@@ -12,6 +14,7 @@ import DiningJourneyCard from "@/components/dining-journey/dining-journey-card.c
 // vs `null` instead, however your hook signals "still checking."
 import { useAuth } from "@/hooks/useAuth";
 import { useDiningJourney } from "@/hooks/useDiningJourney";
+import { useBookingStore } from "@/store/booking/booking.store";
 import {
   DINING_STATUS_META,
   DINING_STATUS_ORDER,
@@ -45,7 +48,32 @@ export default function DiningJourneyPage() {
     statusFilter,
     setStatusFilter,
     refetch,
+    pendingActionId,
+    actionErrors,
+    respondToRequest,
+    removeGuest,
+    changeSeats,
+    updateRequest,
+    cancelRequest,
+    leaveTable,
+    cancelTable,
+    feedbackIds,
+    submitFeedback,
   } = useDiningJourney(user?.uid);
+
+  // "Manage" reuses the booking popup in edit mode.
+  const bookingRestaurant = useBookingStore((state) => state.bookingRestaurant);
+  const editingBooking = useBookingStore((state) => state.editingBooking);
+  const editorError = useBookingStore((state) => state.editorError);
+  const openTableEditor = useBookingStore((state) => state.openTableEditor);
+  const closeBooking = useBookingStore((state) => state.closeBooking);
+  const clearEditorError = useBookingStore((state) => state.clearEditorError);
+  const handleManage = (bookingId) =>
+    openTableEditor(bookingId, { onSaved: refetch });
+
+  // The booking store is shared with the restaurants page — don't leave
+  // this table's editor open for it to pick up after navigating away.
+  useEffect(() => () => closeBooking(), [closeBooking]);
 
   const tabs = [
     { value: null, label: "All", count: totalCount },
@@ -64,10 +92,10 @@ export default function DiningJourneyPage() {
             Log in to see your dining journey
           </h1>
           <p className="mt-2 text-sm text-[#6B6660]">
-            Tables you&apos;ve hosted or joined will show up here once you&apos;re
-            logged in.
+            Tables you&apos;ve hosted or joined will show up here once
+            you&apos;re logged in.
           </p>
-          <Button onClick={() => router.push("/login")} className="mt-4">
+          <Button onClick={() => router.push("/login?redirect=/dining-journey")} className="mt-4">
             Log in
           </Button>
         </div>
@@ -85,7 +113,6 @@ export default function DiningJourneyPage() {
       <div className="mt-4 flex flex-wrap gap-2">
         {tabs.map((tab) => {
           const isActive = statusFilter === tab.value;
-
           return (
             <button
               key={tab.label}
@@ -140,15 +167,59 @@ export default function DiningJourneyPage() {
                 : "Host an open table or join one to start your dining journey."}
             </p>
             {!statusFilter && (
-              <Button onClick={() => router.push("/restaurants")} className="mt-4">
+              <Button
+                onClick={() => router.push("/restaurants")}
+                className="mt-4"
+              >
                 Find a table
               </Button>
             )}
           </div>
         ) : (
-          entries.map((entry) => <DiningJourneyCard key={entry.id} entry={entry} />)
+          entries.map((entry) => (
+            <DiningJourneyCard
+              key={entry.id}
+              entry={entry}
+              currentUserId={user?.uid}
+              pendingActionId={pendingActionId}
+              actionErrors={actionErrors}
+              onRespond={respondToRequest}
+              onRemoveGuest={removeGuest}
+              onManage={handleManage}
+              onChangeSeats={changeSeats}
+              onUpdateRequest={updateRequest}
+              onLeaveTable={leaveTable}
+              onCancelRequest={cancelRequest}
+              onCancelTable={cancelTable}
+              feedbackIds={feedbackIds}
+              onSubmitFeedback={submitFeedback}
+            />
+          ))
         )}
       </div>
+
+      {editorError && (
+        <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-start justify-between gap-3 rounded-xl border border-[#E5E1DB] bg-white p-4 shadow-lg">
+          <p className="text-sm text-red-600">{editorError}</p>
+          <button
+            type="button"
+            onClick={clearEditorError}
+            className="text-sm font-medium text-[#514C47] hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {bookingRestaurant && editingBooking && (
+        <BookingFormModal
+          key={editingBooking.id}
+          restaurant={bookingRestaurant}
+          initialValues={editingBooking}
+          isEditing
+          onClose={closeBooking}
+        />
+      )}
     </WrapperComponent>
   );
 }

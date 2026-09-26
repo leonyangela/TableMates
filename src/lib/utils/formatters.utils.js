@@ -3,6 +3,8 @@
 // Centralized so the card, popup, and details panel all render these the
 // same way instead of re-deriving the same string in three places.
 
+import moment from "moment";
+
 /** { min: 120, max: 180 } -> "$120–$180". Open-ended on either side renders as "$120+" / "Up to $180". */
 export function formatPriceRange(priceRange) {
   if (!priceRange) {
@@ -57,4 +59,12 @@ export function getLocalTimeString(date = new Date()) {
   const minutes = String(date.getMinutes()).padStart(2, "0");
 
   return `${hours}:${minutes}`;
+}
+
+export function hasBookingPassed(booking) {
+  const bookingDateTime = moment(
+    `${booking.date} ${booking.time}`,
+    "YYYY-MM-DD HH:mm",
+  );
+  return bookingDateTime.isBefore(moment());
 }

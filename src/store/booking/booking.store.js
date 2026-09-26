@@ -1,127 +1,268 @@
-"use client";
-
 import { create } from "zustand";
 
-// ASSUMPTION: lib/firebase/config exports `auth` alongside `db` (the
-// standard `getAuth(app)` singleton). Store actions run outside React, so
-// they can't call the useAuth() hook — reading auth.currentUser directly
-// is the normal way to get the caller's uid from a Zustand action. Adjust
-// this import if your config file exposes auth differently.
+import { DEFAULT_BOOKING_FORM } from "@/lib/constants/booking.constants";
 import { auth } from "@/lib/firebase/config";
-import { createBooking, updateBookingDocument } from "@/services/bookingService";
+import {
+  createBooking,
+  getBookingDetails,
+  updateBookingDocument,
+} from "@/services/bookingService";
+import { removeGuestFromTable } from "@/services/communityDiningService";
+import { hasTableStarted } from "@/lib/utils/dining-journey.utils";
+import { isTableCancelled } from "@/lib/constants/dining-journey.constants";
+
+// Re-exported so BookingFormModal's existing import
+// (`{ DEFAULT_BOOKING_FORM, useBookingStore } from ".../useBookingStore"`)
+// keeps working without needing a second import line.
+export { DEFAULT_BOOKING_FORM };
+
+const getErrorMessage = (error) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Something went wrong. Please try again.";
+};
 
 /**
- * The complete shape of BookingFormModal's form. Exported so both create
- * mode (`DEFAULT_BOOKING_FORM`) and edit mode
- * (`{ ...DEFAULT_BOOKING_FORM, ...initialValues }`) always start from a
- * fully-populated object — no field the form reads is ever `undefined`
- * on first render, regardless of what a given booking doc has.
+ * Drives the booking modal: which restaurant it's open for (null = closed),
+ * the form's save/submission state, and the create/update calls
+ * BookingFormModal triggers on submit.
+ *
+ * addBooking/updateBooking now write to Firestore via bookingService.js —
+ * the actual persistence logic (field mapping, the editable-fields
+ * allowlist on update) lives there, not here. This store stays focused on
+ * UI/save state, same as before.
  */
-export const DEFAULT_BOOKING_FORM = {
-  date: "",
-  time: "",
-  totalSeats: 1,
-  yourSeats: 1,
-  tableVisibility: "private", // "private" | "request_to_join" | "open_public"
-  tableDescription: "",
-  occasion: "",
-  otherOccasion: "",
-  name: "",
-  phone: "",
-  email: "",
-  notes: "",
-};
+export const useBookingStore = create((set, get) => ({
+  // Which restaurant the modal is open for. null means closed — this is
+  // the single source of truth for "is the modal open", so there's no
+  // separate boolean that could get out of sync with it.
+  bookingRestaurant: null,
+  // Set when editing an existing open table instead of creating a new
+  // booking (passed through to BookingFormModal as initialValues/isEditing).
+  editingBooking: null,
 
-const INITIAL_SAVE_STATE = {
+  currentBooking: null,
   isSaving: false,
   saveError: null,
-  bookingPreview: "idle", // "idle" | "success" | "error"
-};
+  bookingPreview: null, // null | "success" | "error"
 
-export const useBookingStore = create((set, get) => ({
-  // ---------------------------------------------------------------------
-  // Modal visibility — which restaurant's BookingFormModal is open, if
-  // any. RestaurantDetailsPanel calls openBooking() from its "Book a
-  // table" button; the restaurants page reads bookingRestaurant to decide
-  // whether to render the modal at all, and passes closeBooking as onClose.
-  // ---------------------------------------------------------------------
-  bookingRestaurant: null,
+  // Edit mode only. onSaved lets the page that opened the editor refetch
+  // its own list after a save or guest removal.
+  onSaved: null,
+  editorError: null,
+  removingGuestId: null,
+  guestErrors: {},
 
-  openBooking: (restaurant) =>
+  openBooking: (restaurant, editingBooking = null) =>
     set({
       bookingRestaurant: restaurant,
-      currentBooking: null,
-      ...INITIAL_SAVE_STATE,
+      editingBooking,
+      currentBooking: editingBooking ?? null,
+      isSaving: false,
+      bookingPreview: null,
+      saveError: null,
+      onSaved: null,
+      removingGuestId: null,
+      guestErrors: {},
     }),
 
-  closeBooking: () => set({ bookingRestaurant: null }),
+  closeBooking: () =>
+    set({
+      bookingRestaurant: null,
+      editingBooking: null,
+      currentBooking: null,
+      isSaving: false,
+      saveError: null,
+      bookingPreview: null,
+      onSaved: null,
+      removingGuestId: null,
+      guestErrors: {},
+    }),
 
-  // ---------------------------------------------------------------------
-  // Draft form state. BookingFormModal calls setCurrentBooking(payload)
-  // immediately before addBooking(restaurant) — Zustand's set() is
-  // synchronous, so by the time addBooking runs, get().currentBooking
-  // already reflects that payload without it needing to be passed as an
-  // argument.
-  // ---------------------------------------------------------------------
-  currentBooking: null,
-
-  setCurrentBooking: (booking) =>
-    set((state) => ({
-      currentBooking: { ...state.currentBooking, ...booking },
-    })),
-
-  // ---------------------------------------------------------------------
-  // Save state, surfaced by the modal as isSaving / saveError / bookingPreview.
-  // ---------------------------------------------------------------------
-  ...INITIAL_SAVE_STATE,
-
-  /** Create mode. */
-  addBooking: async (restaurant) => {
-    const userId = auth.currentUser?.uid;
-    const form = get().currentBooking;
-
-    set({ isSaving: true, saveError: null, bookingPreview: "idle" });
+  /**
+   * Opens the booking modal in edit mode for a table the current user
+   * hosts. Loads the fresh booking doc first — the card's copy is a thin
+   * projection — and refuses to open for a non-host or a table that has
+   * already started.
+   */
+  openTableEditor: async (bookingId, { onSaved } = {}) => {
+    set({ editorError: null });
 
     try {
-      const booking = await createBooking({ restaurant, form, userId });
-      set({ isSaving: false, bookingPreview: "success", currentBooking: booking });
-      return booking;
+      const booking = await getBookingDetails(bookingId);
+
+      if (!booking) {
+        throw new Error("This table no longer exists.");
+      }
+
+      if (booking.userId !== auth.currentUser?.uid) {
+        throw new Error("Only the host can manage this table.");
+      }
+
+      if (hasTableStarted(booking)) {
+        throw new Error("This table has already started and can't be changed.");
+      }
+
+      if (isTableCancelled(booking)) {
+        throw new Error("This table was cancelled and can't be changed.");
+      }
+
+      get().openBooking(
+        {
+          id: booking.restaurantId,
+          name: booking.restaurantName,
+          image: booking.restaurantImage,
+        },
+        booking,
+      );
+      set({ onSaved: onSaved ?? null });
+    } catch (error) {
+      console.error("Failed to open table editor:", error);
+      set({ editorError: getErrorMessage(error) });
+    }
+  },
+
+  clearEditorError: () => set({ editorError: null }),
+
+  /**
+   * Host removes one joined guest from the table being edited. Takes
+   * effect immediately (its own transaction), separate from Save Changes;
+   * editingBooking is refreshed so the form's guest list and seat limits
+   * reflect it.
+   */
+  removeGuest: async (guestId) => {
+    const { editingBooking, onSaved } = get();
+    if (!editingBooking) return false;
+
+    set((state) => ({
+      removingGuestId: guestId,
+      guestErrors: { ...state.guestErrors, [guestId]: null },
+    }));
+
+    try {
+      await removeGuestFromTable({
+        bookingId: editingBooking.id,
+        guestId,
+        hostId: auth.currentUser?.uid,
+      });
+
+      const fresh = await getBookingDetails(editingBooking.id);
+
+      if (get().editingBooking?.id === editingBooking.id && fresh) {
+        set({ editingBooking: fresh });
+      }
+      set({ removingGuestId: null });
+      onSaved?.();
+      return true;
+    } catch (error) {
+      console.error("Failed to remove guest:", error);
+      set((state) => ({
+        removingGuestId: null,
+        guestErrors: {
+          ...state.guestErrors,
+          [guestId]: getErrorMessage(error),
+        },
+      }));
+      return false;
+    }
+  },
+
+  setCurrentBooking: (payload) => set({ currentBooking: payload }),
+  setBookingPreview: (payload) =>
+    set({
+      bookingPreview: payload,
+    }),
+
+  setSaveError: (error) =>
+    set({
+      saveError: getErrorMessage(error),
+    }),
+
+  setSaving: (isSaving) =>
+    set({
+      isSaving,
+    }),
+
+  addBooking: async (restaurant) => {
+    const { currentBooking } = get();
+
+    if (!currentBooking) {
+      return;
+    }
+
+    // Actions run outside React, so this reads Firebase Auth's own
+    // current-user state directly rather than going through the
+    // useAuth() hook. ASSUMPTION: lib/firebase/config exports `auth`
+    // alongside `db` — adjust this import if yours differs.
+    const userId = auth.currentUser?.uid;
+
+    set({ isSaving: true, saveError: null });
+
+    try {
+      const booking = await createBooking({
+        restaurant,
+        form: currentBooking,
+        userId,
+      });
+
+      set({
+        isSaving: false,
+        bookingPreview: "success",
+        currentBooking: booking,
+      });
     } catch (error) {
       console.error("Failed to create booking:", error);
       set({
         isSaving: false,
+        saveError: getErrorMessage(error),
         bookingPreview: "error",
-        saveError: error.message ?? "Something went wrong creating your reservation.",
       });
-      return null;
     }
   },
 
-  /** Edit mode — bookingId + the partial update the modal already assembled. */
-  updateBooking: async (bookingId, updates) => {
-    set({ isSaving: true, saveError: null, bookingPreview: "idle" });
+  updateBooking: async (bookingId, payload) => {
+    // Nothing changed — don't hit Firestore at all.
+    if (!payload || Object.keys(payload).length === 0) {
+      return;
+    }
+
+    set({ isSaving: true, saveError: null });
 
     try {
-      const booking = await updateBookingDocument(bookingId, updates);
-      set({ isSaving: false, bookingPreview: "success", currentBooking: booking });
-      return booking;
+      // Seat/visibility changes are validated and seat counts recomputed
+      // inside updateBookingDocument's transaction (see
+      // updateTableSettings) — nothing seat-related is trusted from here.
+      const booking = await updateBookingDocument(bookingId, payload);
+
+      set({
+        isSaving: false,
+        bookingPreview: "success",
+        currentBooking: booking,
+      });
+      get().onSaved?.();
     } catch (error) {
       console.error("Failed to update booking:", error);
       set({
         isSaving: false,
+        saveError: getErrorMessage(error),
         bookingPreview: "error",
-        saveError: error.message ?? "Something went wrong saving your changes.",
       });
-      return null;
     }
   },
 
-  // Called on unmount by the restaurants page. Only clears UI state — the
-  // saved booking itself lives in Firestore, nothing to undo here.
   reset: () =>
     set({
       bookingRestaurant: null,
+      editingBooking: null,
       currentBooking: null,
-      ...INITIAL_SAVE_STATE,
+      isSaving: false,
+      saveError: null,
+      bookingPreview: null,
+      onSaved: null,
+      editorError: null,
+      removingGuestId: null,
+      guestErrors: {},
     }),
 }));

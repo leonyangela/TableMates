@@ -1,98 +1,106 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { useAuth } from "@/hooks/useAuth";
-import { useClickOutside } from "@/hooks/useClickOutside";
 
 import Logo from "@/components/logo/logo.component";
 import NavLink from "@/components/navbar/nav-link.component";
 import MobileMenuButton from "@/components/navbar/mobile-menu.component";
 import ProfileDropdown from "@/components/navbar/profile-dropdown.component";
+import NotificationBell from "@/components/navbar/notification-bell.component";
+import MobileNavOverlay from "@/components/navbar/mobile-nav-overlay.component";
 
 import { NAVBAR_ITEMS, AUTH_ITEMS } from "@/lib/constants/navbar.constants";
 
+// How far the homepage has to scroll before the transparent bar turns solid.
+const SOLID_AFTER_PX = 24;
+
+/**
+ * Dark floating navbar. On the homepage it sits transparently on top of
+ * the dark hero and turns into the solid bar once you scroll; everywhere
+ * else it's solid from the start. Mobile opens a full-screen menu.
+ */
 export default function Navbar() {
   const pathname = usePathname();
   const { isLoggedIn, loading } = useAuth();
-  const navRef = useRef(null);
 
+  // Keyed to the path, so navigating closes it without an effect.
   const [openPath, setOpenPath] = useState(null);
   const menuOpen = openPath === pathname;
+  const closeMenu = useCallback(() => setOpenPath(null), []);
+
+  const [scrolled, setScrolled] = useState(false);
+  const overHero = pathname === "/";
+  const transparent = overHero && !scrolled;
+
+  useEffect(() => {
+    if (!overHero) return undefined;
+
+    const handleScroll = () => setScrolled(window.scrollY > SOLID_AFTER_PX);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [overHero]);
 
   const navLinks = NAVBAR_ITEMS.filter(
     (item) => item.auth === "all" || (isLoggedIn && !loading),
   );
 
-  const closeMenu = () => setOpenPath(null);
-
-  useClickOutside(navRef, closeMenu, menuOpen);
-
   return (
-    <nav
-      ref={navRef}
-      className="bg-white z-50 sticky top-0 left-0 w-full px-4 py-2 flex flex-col md:flex-row md:justify-between md:items-center"
-    >
-      <div className="flex items-center justify-between">
-        <Logo />
-        <MobileMenuButton
-          isOpen={menuOpen}
-          onClick={() => setOpenPath(menuOpen ? null : pathname)}
-        />
-      </div>
-
-      {/* Desktop */}
-      <div className="hidden md:flex md:items-center gap-6">
-        {navLinks.map((item) => (
-          <NavLink key={item.path} href={item.path} title={item.title} />
-        ))}
-
-        <div className="flex items-center gap-4 border-l pl-6">
-          {!loading &&
-            (isLoggedIn ? (
-              <ProfileDropdown />
-            ) : (
-              AUTH_ITEMS.map((item) => (
-                <NavLink key={item.path} href={item.path} title={item.title} />
-              ))
-            ))}
-        </div>
-      </div>
-
-      {/* Mobile */}
+    <>
+      {/* On the homepage the bar is fixed so it overlays the hero (which
+          leaves room for it); elsewhere it's sticky and takes up space. */}
       <div
-        className={`md:hidden overflow-hidden transition-[max-height] duration-300 ease-in-out ${
-          menuOpen ? "max-h-96" : "max-h-0"
+        className={`z-50 w-full ${
+          overHero ? "fixed inset-x-0 top-0 px-6 pt-6" : "sticky top-0 px-3 pt-3"
         }`}
       >
-        <div className="flex flex-col gap-4 py-4">
-          {navLinks.map((item) => (
-            <NavLink
-              key={item.path}
-              href={item.path}
-              title={item.title}
-              onClick={closeMenu}
-            />
-          ))}
+        <nav
+          className={`flex w-full items-center justify-between rounded-full px-4 py-2.5 text-white transition-[background-color,border-color,box-shadow] duration-300 md:px-6 ${
+            transparent
+              ? "border border-transparent bg-transparent"
+              : "border border-white/10 bg-rosy-copper-950/90 shadow-lg shadow-rosy-copper-950/20 backdrop-blur-md"
+          }`}
+        >
+          <Logo className="text-white" />
 
-          <div className="flex flex-col gap-3 border-t pt-4">
-            {!loading &&
-              (isLoggedIn ? (
-                <ProfileDropdown onNavigate={closeMenu} />
-              ) : (
-                AUTH_ITEMS.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    href={item.path}
-                    title={item.title}
-                    onClick={closeMenu}
-                  />
-                ))
-              ))}
+          {/* Desktop */}
+          <div className="hidden items-center gap-1 md:flex">
+            {navLinks.map((item) => (
+              <NavLink key={item.path} href={item.path} title={item.title} />
+            ))}
+
+            <div className="ml-3 flex items-center gap-2 border-l border-white/15 pl-4">
+              {!loading &&
+                (isLoggedIn ? (
+                  <>
+                    <NotificationBell />
+                    <ProfileDropdown />
+                  </>
+                ) : (
+                  AUTH_ITEMS.map((item) => (
+                    <NavLink
+                      key={item.path}
+                      href={item.path}
+                      title={item.title}
+                      variant={item.variant}
+                    />
+                  ))
+                ))}
+            </div>
           </div>
-        </div>
+
+          {/* Mobile */}
+          <MobileMenuButton
+            isOpen={menuOpen}
+            onClick={() => setOpenPath(menuOpen ? null : pathname)}
+          />
+        </nav>
       </div>
-    </nav>
+
+      {menuOpen && <MobileNavOverlay links={navLinks} onClose={closeMenu} />}
+    </>
   );
 }
