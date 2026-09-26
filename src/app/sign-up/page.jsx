@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import Link from "next/link";
+import { Lock, Mail, User } from "lucide-react";
 import AuthLayout from "@/components/auth/auth-layout.component";
+import AuthInput from "@/components/auth/auth-input.component";
 import { signUpWithEmail } from "@/lib/firebase/auth.service";
 import { getAuthErrorMessage } from "@/lib/firebase/auth-error-messages";
 import { isValidEmail, isValidPassword } from "@/lib/utils/validators.utils";
@@ -69,69 +72,77 @@ export default function SignUpPage() {
   };
 
   return (
-    <AuthLayout>
-      <form
-        onSubmit={handleSubmit}
-        className="border p-6 rounded-lg space-y-4 mt-4"
-      >
-        <h1 className="text-center text-2xl font-semibold">
-          Create an Account
-        </h1>
-
-        <input
-          type="text"
+    <AuthLayout
+      title="Create an account"
+      subtitle="Join TableMates to book tables and share meals."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-semibold text-primary hover:text-rosy-copper-600"
+          >
+            Log in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <AuthInput
+          label="Name"
           name="displayName"
-          placeholder="Name"
+          placeholder="Your name"
+          autoComplete="name"
+          Icon={User}
           value={form.displayName}
           onChange={handleChange}
-          className="border p-2 w-full rounded"
         />
-        <input
+        <AuthInput
+          label="Email"
           type="email"
           name="email"
-          placeholder="Email"
+          placeholder="you@example.com"
+          autoComplete="email"
+          Icon={Mail}
           value={form.email}
           onChange={handleChange}
-          className="border p-2 w-full rounded"
         />
-        <input
+        <AuthInput
+          label="Password"
           type="password"
           name="password"
-          placeholder="Password"
+          placeholder="At least 8 characters"
+          autoComplete="new-password"
+          Icon={Lock}
           value={form.password}
           onChange={handleChange}
-          className="border p-2 w-full rounded"
         />
-        <input
+        <AuthInput
+          label="Confirm password"
           type="password"
           name="confirmPassword"
-          placeholder="Confirm Password"
+          placeholder="Re-enter your password"
+          autoComplete="new-password"
+          Icon={Lock}
           value={form.confirmPassword}
           onChange={handleChange}
-          className="border p-2 w-full rounded"
         />
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && (
+          <p
+            role="alert"
+            className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600"
+          >
+            {error}
+          </p>
+        )}
 
         <Button
-          text={isSubmitting ? "Creating account..." : "Sign Up"}
           type="submit"
           disabled={isSubmitting}
-          className="w-full"
+          className="w-full h-11 font-semibold"
         >
-          Sign Up
-        </Button>
-
-        <p className="text-center text-sm mt-2">Have an account?</p>
-
-        <Button
-          text="Login"
-          type="button"
-          onClick={() => router.push("/login")}
-          className="w-full text-center"
-        >
-          {" "}
-          Login
+          {isSubmitting ? "Creating account..." : "Create account"}
         </Button>
       </form>
     </AuthLayout>
