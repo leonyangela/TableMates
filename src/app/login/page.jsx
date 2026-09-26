@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import Link from "next/link";
+import { Lock, Mail } from "lucide-react";
 import AuthLayout from "@/components/auth/auth-layout.component";
+import AuthInput from "@/components/auth/auth-input.component";
 import { loginWithEmail } from "@/lib/firebase/auth.service";
 import { getAuthErrorMessage } from "@/lib/firebase/auth-error-messages";
 import { isValidEmail } from "@/lib/utils/validators.utils";
@@ -49,52 +52,58 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthLayout>
-      <form
-        onSubmit={handleSubmit}
-        className="border p-6 rounded-lg space-y-4 mt-4"
-      >
-        <h1 className="text-center text-2xl font-semibold">
-          Login to Your Account
-        </h1>
-
-        <input
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Log in to manage your bookings and dining plans."
+      footer={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/sign-up"
+            className="font-semibold text-primary hover:text-rosy-copper-600"
+          >
+            Sign up
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <AuthInput
+          label="Email"
           type="email"
           name="email"
-          placeholder="Email"
+          placeholder="you@example.com"
+          autoComplete="email"
+          Icon={Mail}
           value={form.email}
           onChange={handleChange}
-          className="border p-2 w-full rounded"
         />
-        <input
+        <AuthInput
+          label="Password"
           type="password"
           name="password"
-          placeholder="Password"
+          placeholder="Enter your password"
+          autoComplete="current-password"
+          Icon={Lock}
           value={form.password}
           onChange={handleChange}
-          className="border p-2 w-full rounded"
         />
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && (
+          <p
+            role="alert"
+            className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600"
+          >
+            {error}
+          </p>
+        )}
 
         <Button
-          text={isSubmitting ? "Logging in..." : "Login"}
           type="submit"
           disabled={isSubmitting}
-          className="w-full"
+          className="w-full h-11 font-semibold"
         >
-          Login
-        </Button>
-
-        <p className="text-center text-sm mt-2">Don&apos;t have an account?</p>
-
-        <Button
-          text="Sign Up"
-          type="button"
-          onClick={() => router.push("/sign-up")}
-          className="w-full text-center"
-        >
-          Sign Up
+          {isSubmitting ? "Logging in..." : "Log in"}
         </Button>
       </form>
     </AuthLayout>
