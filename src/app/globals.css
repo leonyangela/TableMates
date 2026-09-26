@@ -40,6 +40,18 @@
   --color-grey-olive-800: #333333;
   --color-grey-olive-900: #1A1A1A;
   --color-grey-olive-950: #121212;
+
+  /* Homepage cuisine strip — motion only, no new colours. */
+  --animate-marquee: marquee 40s linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }
 
 @media (prefers-color-scheme: dark) {

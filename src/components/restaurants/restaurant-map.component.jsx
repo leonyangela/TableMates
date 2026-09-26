@@ -65,14 +65,18 @@ export default function RestaurantMap({ restaurants = [] }) {
    */
   useEffect(() => {
     const map = mapRef.current;
+    // Captured now so the cleanup below works on the same collections
+    // this run filled, even if the refs were ever reassigned.
+    const markers = markersRef.current;
+    const dots = dotsRef.current;
 
     if (!map) {
       return;
     }
 
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current.clear();
-    dotsRef.current.clear();
+    markers.forEach((marker) => marker.remove());
+    markers.clear();
+    dots.clear();
 
     restaurants.forEach((restaurant) => {
       if (!restaurant.location?.latitude || !restaurant.location?.longitude) {
@@ -99,14 +103,14 @@ export default function RestaurantMap({ restaurants = [] }) {
         ])
         .addTo(map);
 
-      markersRef.current.set(restaurant.id, marker);
-      dotsRef.current.set(restaurant.id, dot);
+      markers.set(restaurant.id, marker);
+      dots.set(restaurant.id, dot);
     });
 
     return () => {
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current.clear();
-      dotsRef.current.clear();
+      markers.forEach((marker) => marker.remove());
+      markers.clear();
+      dots.clear();
     };
   }, [restaurants]);
 
@@ -120,6 +124,8 @@ export default function RestaurantMap({ restaurants = [] }) {
       const isHighlighted =
         restaurantId === hoveredId || restaurantId === selectedId;
       dot.classList.toggle("scale-125", isHighlighted);
+      // Highlighted pins switch to the brand colour.
+      dot.classList.toggle("bg-primary!", isHighlighted);
       dot.parentElement?.style.setProperty(
         "z-index",
         isHighlighted ? "1" : "0",
@@ -154,7 +160,7 @@ export default function RestaurantMap({ restaurants = [] }) {
   return (
     <div
       ref={mapContainerRef}
-      className="h-full w-full overflow-hidden rounded-2xl"
+      className="h-full w-full overflow-hidden rounded-[2rem]"
     />
   );
 }
@@ -168,7 +174,7 @@ function createMarkerElement() {
 
   const dot = document.createElement("span");
   dot.className =
-    "pointer-events-none h-5 w-5 rounded-full border-2 border-white bg-[#1F1D1B] shadow-md transition-transform";
+    "pointer-events-none h-5 w-5 rounded-full border-[3px] border-white bg-rosy-copper-950 shadow-md transition";
 
   hitTarget.appendChild(dot);
 

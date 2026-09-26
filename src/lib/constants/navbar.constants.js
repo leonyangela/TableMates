@@ -29,6 +29,7 @@ export const AUTH_ITEMS = [
   {
     title: "Sign Up",
     path: "/sign-up",
+    variant: "button",
   },
 ];
 

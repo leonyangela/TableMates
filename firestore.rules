@@ -1,0 +1,379 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // Admins are listed in admins/{uid}, created by hand in the console.
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(uid()));
+    }
+
+    function bookingPath(bookingId) {
+      return /databases/$(database)/documents/bookings/$(bookingId);
+    }
+
+    function lockPath(bookingId, guestId) {
+      return /databases/$(database)/documents/joinRequestLocks/$(bookingId + '_' + guestId);
+    }
+
+    function blockPath(blockerId, blockedId) {
+      return /databases/$(database)/documents/blocks/$(blockerId + '_' + blockedId);
+    }
+
+    function feedbackPath(feedbackId) {
+      return /databases/$(database)/documents/feedback/$(feedbackId);
+    }
+
+    // Either person has blocked the other.
+    function blockedEitherWay(a, b) {
+      return exists(blockPath(a, b)) || exists(blockPath(b, a));
+    }
+
+    function isCancelled(booking) {
+      return booking.get('status', 'active') == 'cancelled';
+    }
+
+    // Host or confirmed guest of a table.
+    function atTable(booking, userId) {
+      return userId == booking.userId
+        || userId in booking.get('joinedUserIds', []);
+    }
+
+    // ---------------------------------------------------------------
+    // users/{uid} — private profile (phone, email…), owner only.
+    // ---------------------------------------------------------------
+    match /users/{userId} {
+      allow read, write: if signedIn() && uid() == userId;
+    }
+
+    // ---------------------------------------------------------------
+    // publicProfiles/{uid} — what other diners see. The owner edits the
+    // profile fields; the feedback counters only ever move together with
+    // a brand-new feedback doc (see /feedback), by exactly its values.
+    // ---------------------------------------------------------------
+    match /publicProfiles/{userId} {
+      function validProfileFields(data) {
+        return data.displayName is string && data.displayName.size() <= 60
+          && data.photoURL is string && data.photoURL.size() <= 500
+          && data.bio is string && data.bio.size() <= 200
+          && data.interests is list && data.interests.size() <= 8
+          && data.dietary is list && data.dietary.size() <= 10;
+      }
+
+      // A counter update matches the new feedback doc it comes with.
+      function feedbackMatches(feedbackId, userId) {
+        let after = getAfter(feedbackPath(feedbackId)).data;
+        let next = request.resource.data;
+        let prev = resource.data;
+        return !exists(feedbackPath(feedbackId))
+          && existsAfter(feedbackPath(feedbackId))
+          && after.fromUid == uid()
+          && after.toUid == userId
+          && next.feedbackCount == prev.get('feedbackCount', 0) + 1
+          && next.thumbsUpCount == prev.get('thumbsUpCount', 0) + (after.thumbs == 'up' ? 1 : 0)
+          && next.wouldDineAgainCount == prev.get('wouldDineAgainCount', 0) + (after.wouldDineAgain ? 1 : 0)
+          && next.noShowCount == prev.get('noShowCount', 0) + (after.attended ? 0 : 1);
+      }
+
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && uid() == userId
+        && validProfileFields(request.resource.data)
+        && request.resource.data.feedbackCount == 0
+        && request.resource.data.thumbsUpCount == 0
+        && request.resource.data.wouldDineAgainCount == 0
+        && request.resource.data.noShowCount == 0;
+
+      // Owner: profile fields only — never the counters.
+      allow update: if signedIn()
+        && uid() == userId
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['displayName', 'photoURL', 'bio', 'interests', 'dietary', 'updatedAt'])
+        && validProfileFields(request.resource.data);
+
+      // Someone else: bumps the counters by exactly the values of the
+      // feedback doc they're creating in the same transaction.
+      allow update: if signedIn()
+        && uid() != userId
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['feedbackCount', 'thumbsUpCount', 'wouldDineAgainCount', 'noShowCount', 'lastFeedbackId'])
+        && feedbackMatches(request.resource.data.lastFeedbackId, userId);
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // feedback/{bookingId}_{fromUid}_{toUid} — private post-meal
+    // feedback. Only between two people who were both at the table,
+    // once per pair per table. Readable by its author and admins only.
+    // ---------------------------------------------------------------
+    match /feedback/{feedbackId} {
+      allow read: if signedIn()
+        && (resource == null || resource.data.fromUid == uid() || isAdmin());
+
+      allow create: if signedIn()
+        && request.resource.data.fromUid == uid()
+        && request.resource.data.toUid != uid()
+        && feedbackId == request.resource.data.bookingId + '_' + uid() + '_' + request.resource.data.toUid
+        && atTable(get(bookingPath(request.resource.data.bookingId)).data, uid())
+        && atTable(get(bookingPath(request.resource.data.bookingId)).data, request.resource.data.toUid)
+        && !isCancelled(get(bookingPath(request.resource.data.bookingId)).data)
+        && request.resource.data.attended is bool
+        && request.resource.data.wouldDineAgain is bool
+        && (request.resource.data.thumbs == null || request.resource.data.thumbs in ['up', 'down'])
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 300;
+
+      allow update, delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // blocks/{blockerId}_{blockedId} — only the blocker sees or changes
+    // their blocks. Enforced at join/request time below.
+    // ---------------------------------------------------------------
+    match /blocks/{blockId} {
+      allow read: if signedIn()
+        && (resource == null || resource.data.blockerId == uid());
+
+      allow create: if signedIn()
+        && request.resource.data.blockerId == uid()
+        && request.resource.data.blockedId != uid()
+        && blockId == uid() + '_' + request.resource.data.blockedId;
+
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.blockerId == uid();
+    }
+
+    // ---------------------------------------------------------------
+    // reports — anyone signed in can file one; only admins read them.
+    // ---------------------------------------------------------------
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.reporterId == uid()
+        && request.resource.data.reportedId != uid()
+        && request.resource.data.reason in ['no_show', 'inappropriate', 'harassment', 'spam', 'other']
+        && request.resource.data.details is string
+        && request.resource.data.details.size() <= 500
+        && request.resource.data.status == 'open';
+
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // notifications — in-app, written by whoever acts. You can notify
+    // about a table you host, notify the host of a table, or confirm
+    // your own action to yourself.
+    // Recipients read, mark read, and delete their own.
+    // ---------------------------------------------------------------
+    match /notifications/{notificationId} {
+      allow read, delete: if signedIn() && resource.data.userId == uid();
+
+      allow update: if signedIn()
+        && resource.data.userId == uid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+
+      // A confirmation to yourself ("Request sent", "You're in!") is
+      // allowed for the table you're acting on; everything else goes
+      // host -> anyone, or anyone -> host.
+      allow create: if signedIn()
+        && request.resource.data.actorId == uid()
+        && request.resource.data.read == false
+        && request.resource.data.type in [
+             'join_request', 'request_sent', 'joined_table',
+             'request_accepted', 'request_rejected',
+             'request_cancelled', 'seat_change_request',
+             'seat_change_accepted', 'seat_change_rejected',
+             'guest_joined', 'guest_left', 'removed_from_table',
+             'table_cancelled'
+           ]
+        && (request.resource.data.userId == uid()
+            || uid() == get(bookingPath(request.resource.data.bookingId)).data.userId
+            || request.resource.data.userId == get(bookingPath(request.resource.data.bookingId)).data.userId);
+    }
+
+    // ---------------------------------------------------------------
+    // admins/{uid} — who is an admin. Users can check their own entry;
+    // nobody can write it from the app (add admins in the console).
+    // ---------------------------------------------------------------
+    match /admins/{userId} {
+      allow get: if signedIn() && uid() == userId;
+      allow list, write: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // restaurants — public catalog. Only admins seed / edit it.
+    // ---------------------------------------------------------------
+    match /restaurants/{restaurantId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // meta/restaurantCategories — the category filter's list, derived
+    // from the restaurant data. Only admins (seeding / backfill) write it.
+    // ---------------------------------------------------------------
+    match /meta/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // bookings — one doc per table. `userId` is the host.
+    // ---------------------------------------------------------------
+    match /bookings/{bookingId} {
+      allow read: if true;
+
+      // New tables start active and empty.
+      allow create: if signedIn()
+        && request.resource.data.userId == uid()
+        && request.resource.data.get('status', 'active') == 'active'
+        && request.resource.data.get('joinedUserIds', []).size() == 0;
+
+      // Host: can update anything on their own table (edit, approve,
+      // remove guests, cancel) — except who owns it, and a cancelled
+      // table stays cancelled.
+      allow update: if signedIn()
+        && resource.data.userId == uid()
+        && request.resource.data.userId == resource.data.userId
+        && !(isCancelled(resource.data) && !isCancelled(request.resource.data));
+
+      // Guest instant join on an open_public table (joinPublicTable):
+      // only the seat/guest fields, only adding themselves, never
+      // overbooking, never a cancelled table, never across a block.
+      allow update: if signedIn()
+        && resource.data.userId != uid()
+        && resource.data.tableVisibility == 'open_public'
+        && !isCancelled(resource.data)
+        && !blockedEitherWay(uid(), resource.data.userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['seatsAvailable', 'seatsJoined', 'joinedUsers', 'joinedUserIds'])
+        && !(uid() in resource.data.get('joinedUserIds', []))
+        && uid() in request.resource.data.joinedUserIds
+        && request.resource.data.joinedUserIds.size()
+             == resource.data.get('joinedUserIds', []).size() + 1
+        && request.resource.data.seatsAvailable >= 0;
+
+      // Guest leaves a table (leaveTable): only the seat/guest fields,
+      // only removing themselves — and adding only themselves to the
+      // leftUserIds history.
+      allow update: if signedIn()
+        && resource.data.userId != uid()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['seatsAvailable', 'seatsJoined', 'joinedUsers', 'joinedUserIds', 'leftUserIds'])
+        && request.resource.data.get('leftUserIds', []).toSet()
+             .difference(resource.data.get('leftUserIds', []).toSet())
+             .hasOnly([uid()])
+        && uid() in resource.data.get('joinedUserIds', [])
+        && !(uid() in request.resource.data.joinedUserIds)
+        && request.resource.data.joinedUserIds.size()
+             == resource.data.get('joinedUserIds', []).size() - 1
+        && request.resource.data.seatsAvailable >= 0;
+
+      allow delete: if signedIn() && resource.data.userId == uid();
+    }
+
+    // ---------------------------------------------------------------
+    // joinRequestLocks/{bookingId}_{guestId} — at most ONE active
+    // request per (table, guest). Created together with the request,
+    // deleted when the host responds or the guest withdraws/leaves.
+    // ---------------------------------------------------------------
+    match /joinRequestLocks/{lockId} {
+      // resource == null: the app checks whether a lock exists before
+      // creating one, which is a read of a missing doc.
+      allow get: if signedIn()
+        && (resource == null
+            || uid() == resource.data.guestId
+            || uid() == resource.data.hostId);
+
+      // Only for yourself, only with the right id, only naming the real
+      // host. A second create for the same table is an UPDATE of an
+      // existing doc, which is denied below — that's the duplicate guard.
+      allow create: if signedIn()
+        && request.resource.data.guestId == uid()
+        && lockId == request.resource.data.bookingId + '_' + uid()
+        && request.resource.data.hostId
+             == get(bookingPath(request.resource.data.bookingId)).data.userId;
+
+      allow update: if false;
+
+      // resource == null: responding to a request made before locks
+      // existed deletes a lock that was never created.
+      allow delete: if signedIn()
+        && (resource == null
+            || uid() == resource.data.hostId
+            || uid() == resource.data.guestId);
+    }
+
+    // ---------------------------------------------------------------
+    // joinRequests — join requests and seat-change requests.
+    // Never deleted; resolved by flipping `status`.
+    // ---------------------------------------------------------------
+    match /joinRequests/{requestId} {
+      allow read: if signedIn()
+        && (uid() == resource.data.guestId || uid() == resource.data.hostId);
+
+      // Guest creates a pending request for themselves, addressed to the
+      // table's real host, on a table that isn't cancelled, with no
+      // block between them — and must create its lock in the same
+      // transaction, so a second active request for the same table can't
+      // be created, even bypassing the app.
+      allow create: if signedIn()
+        && request.resource.data.guestId == uid()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.type in ['join', 'seat_change']
+        && request.resource.data.seats is int
+        && request.resource.data.seats > 0
+        && request.resource.data.get('message', '').size() <= 150
+        && request.resource.data.hostId
+             == get(bookingPath(request.resource.data.bookingId)).data.userId
+        && !isCancelled(get(bookingPath(request.resource.data.bookingId)).data)
+        && !blockedEitherWay(uid(), request.resource.data.hostId)
+        && !exists(lockPath(request.resource.data.bookingId, uid()))
+        && existsAfter(lockPath(request.resource.data.bookingId, uid()));
+
+      // Host answers a pending request (accept / reject), or closes it
+      // when cancelling the table or blocking the guest. Status only, once.
+      allow update: if signedIn()
+        && uid() == resource.data.hostId
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['accepted', 'rejected', 'cancelled']
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status']);
+
+      // Guest edits their own join request while it's still pending:
+      // seats and message only (plus updatedAt) — never the status, host,
+      // table or type. Once the host answers, it's final.
+      allow update: if signedIn()
+        && uid() == resource.data.guestId
+        && resource.data.status == 'pending'
+        && resource.data.get('type', 'join') == 'join'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['seats', 'message', 'updatedAt'])
+        && request.resource.data.seats is int
+        && request.resource.data.seats > 0
+        && request.resource.data.get('message', '').size() <= 150;
+
+      // Guest withdraws their own pending request (or it's withdrawn as
+      // they leave the table).
+      allow update: if signedIn()
+        && uid() == resource.data.guestId
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status']);
+
+      allow delete: if false;
+    }
+  }
+}

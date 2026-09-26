@@ -1,6 +1,14 @@
 "use client";
 
-import { CheckCircle2, Clock3, UtensilsCrossed, XCircle } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  CircleSlash,
+  Hourglass,
+  UtensilsCrossed,
+  XCircle,
+} from "lucide-react";
 
 import {
   DINING_STATUS,
@@ -16,12 +24,13 @@ import {
 //    neither is a "brand" moment.
 const STATUS_STYLES = {
   [DINING_STATUS.COMING_SOON]: {
-    icon: UtensilsCrossed,
+    icon: CalendarClock,
     className: "bg-primary/10 text-primary",
   },
+  // Happening now — the one solid brand badge, so it stands out.
   [DINING_STATUS.IN_PROGRESS]: {
     icon: UtensilsCrossed,
-    className: "bg-primary/10 text-primary",
+    className: "bg-primary text-white",
   },
   [DINING_STATUS.AWAITING_CONFIRMATION]: {
     icon: Clock3,
@@ -33,6 +42,14 @@ const STATUS_STYLES = {
   },
   [DINING_STATUS.REJECTED]: {
     icon: XCircle,
+    className: "bg-grey-olive-100 text-grey-olive-500",
+  },
+  [DINING_STATUS.CANCELLED]: {
+    icon: CircleSlash,
+    className: "bg-grey-olive-100 text-grey-olive-500",
+  },
+  [DINING_STATUS.EXPIRED]: {
+    icon: Hourglass,
     className: "bg-grey-olive-100 text-grey-olive-500",
   },
 };

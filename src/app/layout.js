@@ -1,6 +1,7 @@
 import { Open_Sans, Oswald } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "../contexts/auth.context";
+import SessionEffects from "@/components/session/session-effects.component";
 
 const openSans = Open_Sans({
   variable: "--font-sans",
@@ -24,7 +25,10 @@ export default function RootLayout({ children }) {
         className={`min-h-full relative ${openSans.variable} ${oswald.variable} `}
       >
         {" "}
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <SessionEffects />
+        </AuthProvider>
       </body>
     </html>
   );

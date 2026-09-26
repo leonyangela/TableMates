@@ -16,13 +16,8 @@ export const PRICE_BOUNDS = { min: 0, max: '1000' };
 // document, as the catalog grows.
 export const TOP_RATED_MIN_RATING = 4.5;
 
-export const CATEGORY_OPTIONS = [
-  "Chinese",
-  "Italian",
-  "Japanese",
-  "Steakhouse",
-  "Cafe",
-];
+// Categories aren't a constant — they come from the restaurant data
+// (see lib/utils/restaurant-categories.utils.js).
 
 // "Other" filters the user can combine freely — an array rather than the
 // old single-value field, since trending and top-rated are independent

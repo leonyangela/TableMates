@@ -20,6 +20,10 @@ export const useRestaurantSelectionStore = create((set) => ({
 
   closePopup: () => set({ selectedId: null }),
 
+  // Select a restaurant and show its quick-preview popup — never toggles
+  // off (unlike select), e.g. when arriving from a homepage link.
+  focus: (id) => set({ selectedId: id, detailsOpen: false }),
+
   // "View full details" — keeps the restaurant selected (so the map stays
   // flown-to and the marker stays highlighted) but swaps the popup for the
   // side panel.

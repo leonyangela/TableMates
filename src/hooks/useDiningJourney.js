@@ -1,32 +1,53 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 import {
-  deriveDiningStatus,
-  getDiningJourney,
-} from "@/services/diningJourneyService";
-import { DINING_STATUS } from "@/lib/constants/dining-journey.constants";
+  getUpcomingEntries,
+  useDiningJourneyStore,
+  withDisplayStatus,
+} from "@/store/dining-journey/dining-journey.store";
+import { DINING_STATUS_ORDER } from "@/lib/constants/dining-journey.constants";
 
 const STATUS_RECHECK_INTERVAL_MS = 60_000;
 
 /**
- * Fetches a user's full dining journey once, then keeps each entry's
- * displayStatus current against wall-clock time — a table that crosses
- * its start time while this page is left open flips to "Completed" on
- * its own, no refetch required.
+ * The signed-in user's Dining Journey, bound to useDiningJourneyStore (the
+ * single source of truth the homepage reads too). Adds the two pieces of
+ * view state that belong to a page rather than the data: the status
+ * filter tab, and a once-a-minute clock so a table crossing its start or
+ * end time flips coming_soon -> in_progress -> completed on its own, with
+ * no refetch.
  */
 export function useDiningJourney(userId) {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [statusFilter, setStatusFilter] = useState(null); // null = "All"
-  const [reloadIndex, setReloadIndex] = useState(0);
+  const load = useDiningJourneyStore((state) => state.load);
+  const store = useDiningJourneyStore(
+    useShallow((state) => ({
+      entries: state.entries,
+      loading: state.loading,
+      error: state.error,
+      refetch: state.refetch,
+      pendingActionId: state.pendingActionId,
+      actionErrors: state.actionErrors,
+      respondToRequest: state.respondToRequest,
+      removeGuest: state.removeGuest,
+      changeSeats: state.changeSeats,
+      updateRequest: state.updateRequest,
+      cancelRequest: state.cancelRequest,
+      leaveTable: state.leaveTable,
+      cancelTable: state.cancelTable,
+      feedbackIds: state.feedbackIds,
+      submitFeedback: state.submitFeedback,
+    })),
+  );
 
-  // Ticks once a minute purely to force the derived-status memo below to
-  // re-run against a fresh `now`. Cheap: it's a plain per-item comparison,
-  // not a refetch.
+  const [statusFilter, setStatusFilter] = useState(null); // null = "All"
   const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    load(userId);
+  }, [load, userId]);
 
   useEffect(() => {
     const interval = setInterval(
@@ -36,54 +57,20 @@ export function useDiningJourney(userId) {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (!userId) {
-      setEntries([]);
-      setLoading(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-
-    async function fetchJourney() {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const result = await getDiningJourney(userId);
-        if (!cancelled) setEntries(result);
-      } catch (fetchError) {
-        console.error("Failed to fetch dining journey:", fetchError);
-        if (!cancelled) setError(fetchError);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchJourney();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, reloadIndex]);
-
   const journey = useMemo(
-    () =>
-      entries.map((entry) => ({
-        ...entry,
-        displayStatus: deriveDiningStatus(entry, now),
-      })),
-    [entries, now],
+    () => withDisplayStatus(store.entries, now),
+    [store.entries, now],
+  );
+
+  const upcoming = useMemo(
+    () => getUpcomingEntries(store.entries, now),
+    [store.entries, now],
   );
 
   const counts = useMemo(() => {
-    const base = {
-      [DINING_STATUS.COMING_SOON]: 0,
-      [DINING_STATUS.IN_PROGRESS]: 0,
-      [DINING_STATUS.AWAITING_CONFIRMATION]: 0,
-      [DINING_STATUS.COMPLETED]: 0,
-      [DINING_STATUS.REJECTED]: 0,
-    };
+    const base = Object.fromEntries(
+      DINING_STATUS_ORDER.map((status) => [status, 0]),
+    );
 
     journey.forEach((entry) => {
       base[entry.displayStatus] = (base[entry.displayStatus] ?? 0) + 1;
@@ -100,18 +87,13 @@ export function useDiningJourney(userId) {
     [journey, statusFilter],
   );
 
-  const refetch = useCallback(() => {
-    setReloadIndex((current) => current + 1);
-  }, []);
-
   return {
+    ...store,
     entries: filtered,
+    upcoming,
     totalCount: journey.length,
     counts,
-    loading,
-    error,
     statusFilter,
     setStatusFilter,
-    refetch,
   };
 }

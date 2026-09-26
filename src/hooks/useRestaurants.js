@@ -7,9 +7,12 @@ import {
 } from "@/services/restaurantService";
 
 /**
- * Cursor-paginated restaurant list. Changing any filter starts over from
- * page one (via the effect below); `loadMore` appends the next page onto
- * whatever's already showing.
+ * Cursor-paginated restaurant list, PAGE_SIZE (20) at a time. Changing any
+ * filter — including `filters.search` — starts over from page one (via
+ * the effect below); `loadMore` appends the next page onto whatever's
+ * already showing. A search queries the whole Firestore collection (see
+ * restaurantService), paginated the same way; clearing it returns to
+ * normal browsing.
  */
 export function useRestaurants(filters = {}) {
   const [restaurants, setRestaurants] = useState([]);
@@ -70,6 +73,7 @@ export function useRestaurants(filters = {}) {
     filters.priceMin,
     filters.priceMax,
     filters.category,
+    filters.search,
     otherKey,
     reloadIndex,
   ]);
@@ -86,10 +90,7 @@ export function useRestaurants(filters = {}) {
         filters,
         cursor: cursorRef.current,
       });
-      // const result = await getRestaurantsPage({ filters });
       setRestaurants((previous) => [...previous, ...result.restaurants]);
-      console.log(result);
-      
       setHasMore(result.hasMore);
       cursorRef.current = result.nextCursor;
     } catch (fetchError) {
@@ -98,7 +99,6 @@ export function useRestaurants(filters = {}) {
     } finally {
       setLoadingMore(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, hasMore, loadingMore]);
 
   const refetch = useCallback(() => {

@@ -7,9 +7,9 @@ export default function MobileMenuButton({ isOpen, onClick }) {
       onClick={onClick}
       aria-expanded={isOpen}
       aria-label={isOpen ? "Close menu" : "Open menu"}
-      className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 md:hidden"
     >
-      {isOpen ? <X size={22} /> : <Menu size={22} />}
+      {isOpen ? <X size={20} /> : <Menu size={20} />}
     </button>
   );
 }

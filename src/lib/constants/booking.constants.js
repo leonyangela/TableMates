@@ -41,4 +41,7 @@ export const DEFAULT_BOOKING_FORM = {
   tableVisibility: "private",
   tableDescription: "",
   type: "restaurant",
+  // Recurring tables — create mode only (see bookingService.createBooking).
+  repeat: "none",
+  repeatCount: 4,
 };
