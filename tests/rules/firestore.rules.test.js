@@ -70,9 +70,10 @@ describe("booking contact details", () => {
   });
 
   it("allows creating a booking and its contact doc in one batch", async () => {
-    const batch = writeBatch(db(HOST));
-    batch.set(doc(db(HOST), "bookings/b3"), booking());
-    batch.set(doc(db(HOST), "bookings/b3/private/contact"), contact);
+    const host = db(HOST);
+    const batch = writeBatch(host);
+    batch.set(doc(host, "bookings/b3"), booking());
+    batch.set(doc(host, "bookings/b3/private/contact"), contact);
     await assertSucceeds(batch.commit());
   });
 
@@ -124,20 +125,22 @@ describe("join requests", () => {
   const lock = { bookingId: "b1", guestId: GUEST, hostId: HOST };
 
   it("needs the lock doc created in the same batch", async () => {
-    await assertFails(setDoc(doc(db(GUEST), "joinRequests/r1"), request));
+    const guest = db(GUEST);
+    await assertFails(setDoc(doc(guest, "joinRequests/r1"), request));
 
-    const batch = writeBatch(db(GUEST));
-    batch.set(doc(db(GUEST), "joinRequests/r1"), request);
-    batch.set(doc(db(GUEST), `joinRequestLocks/b1_${GUEST}`), lock);
+    const batch = writeBatch(guest);
+    batch.set(doc(guest, "joinRequests/r1"), request);
+    batch.set(doc(guest, `joinRequestLocks/b1_${GUEST}`), lock);
     await assertSucceeds(batch.commit());
   });
 
   it("refuses a second active request for the same table", async () => {
     await seed(`joinRequestLocks/b1_${GUEST}`, lock);
 
-    const batch = writeBatch(db(GUEST));
-    batch.set(doc(db(GUEST), "joinRequests/r2"), request);
-    batch.set(doc(db(GUEST), `joinRequestLocks/b1_${GUEST}`), lock);
+    const guest = db(GUEST);
+    const batch = writeBatch(guest);
+    batch.set(doc(guest, "joinRequests/r2"), request);
+    batch.set(doc(guest, `joinRequestLocks/b1_${GUEST}`), lock);
     await assertFails(batch.commit());
   });
 
