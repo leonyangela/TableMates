@@ -12,7 +12,8 @@ import {
 } from "@/lib/utils/join-eligibility.utils";
 import { JOIN_REJECTION_LIMIT } from "@/lib/constants/dining-journey.constants";
 
-const NOW = new Date("2026-06-01T12:00:00");
+// Instants in UTC; table times are Brisbane time (UTC+10).
+const NOW = new Date("2026-06-01T02:00:00Z");
 
 const table = {
   id: "t1",
@@ -41,7 +42,7 @@ describe("getJoinEligibility", () => {
     ["the user blocked the host", { blockedUserIds: ["host"] }, JOIN_BLOCK_CODE.BLOCKED],
     ["the table is private", { booking: { ...table, tableVisibility: "private" } }, JOIN_BLOCK_CODE.NOT_OPEN],
     ["an instant join hits an approval table", { mode: JOIN_MODE.INSTANT }, JOIN_BLOCK_CODE.NOT_OPEN],
-    ["the table has started", { now: new Date("2026-06-10T19:30:00") }, JOIN_BLOCK_CODE.STARTED],
+    ["the table has started", { now: new Date("2026-06-10T09:30:00Z") }, JOIN_BLOCK_CODE.STARTED],
     ["the user already joined", { booking: { ...table, joinedUserIds: ["guest"] } }, JOIN_BLOCK_CODE.ALREADY_JOINED],
     ["a lock says a request is active", { hasActiveRequest: true }, JOIN_BLOCK_CODE.PENDING_REQUEST],
     ["the table is full", { booking: { ...table, totalSeats: 1 } }, JOIN_BLOCK_CODE.FULL],
@@ -82,8 +83,8 @@ describe("getJoinEligibility", () => {
 describe("countRecentRejections", () => {
   it("only counts join rejections inside the rolling window", () => {
     const requests = [
-      { status: "rejected", createdAt: new Date("2026-06-01T08:00:00") },
-      { status: "rejected", createdAt: new Date("2026-05-20T08:00:00") },
+      { status: "rejected", createdAt: new Date("2026-05-31T22:00:00Z") },
+      { status: "rejected", createdAt: new Date("2026-05-20T22:00:00Z") },
       { status: "rejected", type: "seat_change", createdAt: NOW },
       { status: "pending", createdAt: NOW },
     ];
@@ -128,7 +129,7 @@ describe("isRequestExpired", () => {
   it("expires a pending request once the table starts", () => {
     const request = { status: "pending" };
     expect(isRequestExpired(request, table, NOW)).toBe(false);
-    expect(isRequestExpired(request, table, new Date("2026-06-10T19:00:00"))).toBe(true);
+    expect(isRequestExpired(request, table, new Date("2026-06-10T09:00:00Z"))).toBe(true);
   });
 });
 
