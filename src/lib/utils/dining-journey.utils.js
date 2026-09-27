@@ -70,3 +70,15 @@ export function seatChangeActionId(bookingId) {
 export function getHostName(booking) {
   return booking?.hostName || booking?.name || null;
 }
+
+const SHORT_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+
+/** "2026-09-20" -> "Sun, Sep 20". The date as written, in any time zone. */
+export function formatShortDate(dateStr) {
+  const date = combineDateAndTime(dateStr, "00:00");
+  return date ? SHORT_DATE_FORMAT.format(date) : dateStr;
+}
