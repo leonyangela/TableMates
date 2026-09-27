@@ -43,8 +43,6 @@ import { useBackdropClose } from "@/hooks/useBackdropClose";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
-// const TODAY_STR = new Date().toISOString().split("T")[0];
-
 /**
  * Booking form popup shown when a restaurant's "Reserve" button is clicked
  * (create mode), or when a host clicks "Edit" on their own open table from
@@ -136,12 +134,6 @@ const BookingFormModal = ({
 
   // Only offer times the restaurant is actually open, and if the chosen
   // date is today, drop any slots that have already passed.
-  // const availableTimes = useMemo(() => {
-  //   const times = restaurant?.time_opening ?? [];
-  //   if (form.date !== TODAY_STR) return times;
-  //   const nowStr = new Date().toTimeString().slice(0, 5); // "HH:MM"
-  //   return times.filter((t) => t > nowStr);
-  // }, [restaurant, form.date]);
   const todayStr = getLocalDateString();
 
   const availableTimes = useMemo(() => {

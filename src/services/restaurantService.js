@@ -81,9 +81,8 @@ function buildRestaurantsQuery(filters, cursorId) {
   if (cursorId) {
     // A plain document-ID string, not a QueryDocumentSnapshot — Firestore
     // accepts either for startAfter() when the orderBy is on that same
-    // field. Using the string form (see getRestaurantsPage) is what keeps
-    // the cursor serializable, since it needs to survive being handed from
-    // a Server Component to a Client Component as a plain prop.
+    // field. The string form keeps the cursor a plain, serializable value
+    // (it could be passed from a Server Component or put in a URL).
     constraints.push(startAfter(cursorId));
   }
 
@@ -156,7 +155,7 @@ function toRestaurant(restaurantDoc) {
  * Normalizes createdAt into comparable milliseconds, whether it's a
  * Firestore Timestamp (.toDate()), a JS Date, or an ISO string. Missing or
  * unparseable values sort as "oldest" (0) rather than throwing — documents
- * without createdAt (see the note in chat about adding this field) simply
+ * without createdAt simply
  * won't win recency tiebreaks, instead of crashing the sort.
  */
 function toMillis(value) {
@@ -238,8 +237,7 @@ async function hasMoreAfterCursor(filters, cursorId) {
  * Fetches one page of restaurants matching `filters`, cursor-paginated so
  * a 1,000+ row collection is never pulled in one shot. Pass the previous
  * call's `nextCursor` back in as `cursor` to continue (this is what
- * useRestaurants' `loadMore` does, and what a Server Component's initial
- * page.jsx fetch hands to the client as a plain, serializable string).
+ * useRestaurants' `loadMore` does).
  */
 export async function getRestaurantsPage({ filters = {}, cursor = null } = {}) {
   let matches = [];

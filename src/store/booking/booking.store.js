@@ -11,9 +11,6 @@ import { removeGuestFromTable } from "@/services/communityDiningService";
 import { hasTableStarted } from "@/lib/utils/dining-journey.utils";
 import { isTableCancelled } from "@/lib/constants/dining-journey.constants";
 
-// Re-exported so BookingFormModal's existing import
-// (`{ DEFAULT_BOOKING_FORM, useBookingStore } from ".../useBookingStore"`)
-// keeps working without needing a second import line.
 export { DEFAULT_BOOKING_FORM };
 
 const getErrorMessage = (error) => {
@@ -193,9 +190,7 @@ export const useBookingStore = create((set, get) => ({
     }
 
     // Actions run outside React, so this reads Firebase Auth's own
-    // current-user state directly rather than going through the
-    // useAuth() hook. ASSUMPTION: lib/firebase/config exports `auth`
-    // alongside `db` — adjust this import if yours differs.
+    // current-user state directly rather than going through useAuth().
     const userId = auth.currentUser?.uid;
 
     set({ isSaving: true, saveError: null });
