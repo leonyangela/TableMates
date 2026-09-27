@@ -10,6 +10,7 @@ import UserNameButton from "../profile/user-name-button.component";
 import Button from "../button/button.component";
 import { getBookingDetails } from "@/services/bookingService";
 import { feedbackId } from "@/lib/constants/firestore-collections.constants";
+import { getHostName } from "@/lib/utils/dining-journey.utils";
 import { FEEDBACK_NOTE_MAX_LENGTH } from "@/lib/constants/social.constants";
 import { useBackdropClose } from "@/hooks/useBackdropClose";
 
@@ -148,17 +149,9 @@ export default function FeedbackModal({
     };
   }, [entry.bookingId]);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   const people = booking
     ? [
-        { uid: booking.userId, name: booking.name || "Host", isHost: true },
+        { uid: booking.userId, name: getHostName(booking) || "Host", isHost: true },
         ...(booking.joinedUsers ?? []).map((guest) => ({
           uid: guest.uid,
           name: guest.name || "Guest",

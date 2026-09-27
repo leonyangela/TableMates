@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Ban, Flag, Leaf } from "lucide-react";
 import ModalShell from "@/components/ui/modal-shell.component";
 import { FIELD } from "@/components/ui/styles";
@@ -125,15 +125,6 @@ export default function PublicProfileModal() {
   const view = panel.uid === uid ? panel.view : null; // null | "report" | "block"
   const reported = panel.uid === uid && panel.reported;
   const setView = (next) => setPanel({ uid, view: next, reported });
-
-  useEffect(() => {
-    if (!uid) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") closeProfile();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [uid, closeProfile]);
 
   if (!uid) return null;
 

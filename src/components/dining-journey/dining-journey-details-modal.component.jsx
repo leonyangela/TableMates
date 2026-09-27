@@ -16,6 +16,7 @@ import EditJoinRequest from "../community-dining/edit-join-request.component";
 import { computeSeatState } from "@/lib/utils/table-seats.utils";
 import {
   formatDiningDateTime,
+  getHostName,
   hasTableStarted,
   seatChangeActionId,
 } from "@/lib/utils/dining-journey.utils";
@@ -32,7 +33,7 @@ import { useBackdropClose } from "@/hooks/useBackdropClose";
  * The full picture behind a card: fetches the actual booking doc on open
  * (the card's `entry.table` is a deliberately thin projection — see
  * diningJourneyService.js) so this can show what the card can't: the
- * table description, occasion, the host's own contact info, and every
+ * table description, occasion, the host's own contact info (host only), and every
  * guest who's joined. One booking doc is the whole table — host and
  * guests alike — so this is the one place both halves show up together.
  */
@@ -87,7 +88,9 @@ export default function DiningJourneyDetailsModal({
       setLoadError(null);
 
       try {
-        const result = await getBookingDetails(entry.bookingId);
+        const result = await getBookingDetails(entry.bookingId, {
+          includeContact: isHost,
+        });
         if (!cancelled) setBooking(result);
       } catch (error) {
         console.error("Failed to load booking details:", error);
@@ -102,16 +105,7 @@ export default function DiningJourneyDetailsModal({
     return () => {
       cancelled = true;
     };
-  }, [entry.bookingId]);
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose?.();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [entry.bookingId, isHost]);
 
   // `booking` is this modal's own fetched copy, so drop the guest from it
   // locally once the removal succeeds rather than re-fetching.
@@ -202,15 +196,14 @@ export default function DiningJourneyDetailsModal({
                 <div>
                   <TableCreatedBy
                     hostId={booking.userId}
-                    hostName={booking.name}
+                    hostName={getHostName(booking)}
                     createdAt={booking.createdAt}
                     isYou={isHost}
                     bookingId={entry.bookingId}
                   />
                 </div>
-                {/* Contact details are only shown to the host reviewing
-                    their own submission — a guest doesn't need a
-                    stranger's phone/email just to see who's hosting. */}
+                {/* Only the host's own contact details, loaded from the
+                    private doc that firestore.rules keeps host-only. */}
                 {isHost && (booking.phone || booking.email) && (
                   <div className="mt-3 space-y-1 font-meta text-[11px] uppercase tracking-[0.1em] text-paper/55">
                     {booking.phone && <p>{booking.phone}</p>}
@@ -219,7 +212,7 @@ export default function DiningJourneyDetailsModal({
                 )}
               </DetailBlock>
 
-              {booking.notes && (
+              {isHost && booking.notes && (
                 <DetailBlock label="Special requests">
                   <p className="text-sm leading-6 text-paper/75">{booking.notes}</p>
                 </DetailBlock>

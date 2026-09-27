@@ -19,9 +19,9 @@ const LINES = [
  * second small image breaking the first one's edge, and the metadata and
  * actions kept deliberately small against it.
  */
-const Hero = () => {
+const Hero = ({ summary: initialSummary }) => {
   const { isLoggedIn } = useAuth();
-  const { restaurants, loading } = useHomepageData();
+  const { summary } = useHomepageData(initialSummary);
 
   return (
     <section className="relative isolate min-h-[100dvh] overflow-hidden bg-ink px-5 pb-10 pt-28 font-body text-paper md:px-10 md:pt-32">
@@ -30,7 +30,7 @@ const Hero = () => {
         <p className="md:col-span-3">Social dining</p>
         <p className="md:col-span-3 hidden">Brisbane, Australia</p>
         <p className="col-span-2 md:col-span-3" aria-live="polite">
-          {loading ? " " : `${restaurants.length} restaurants listed`}
+          {summary ? `${summary.restaurantCount} restaurants listed` : "\u00a0"}
         </p>
       </div>
 

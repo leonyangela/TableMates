@@ -14,6 +14,14 @@ export function joinRequestLockId(bookingId, guestId) {
   return `${bookingId}_${guestId}`;
 }
 
+// bookings/{bookingId}/private/contact — the host's name, phone, email and
+// notes for a booking. Bookings themselves are publicly readable (open
+// tables are browsable), so anything personal lives here instead, where
+// firestore.rules lets only the host (and admins) read it.
+export const BOOKING_PRIVATE_SUBCOLLECTION = "private";
+export const BOOKING_CONTACT_DOC_ID = "contact";
+export const BOOKING_CONTACT_FIELDS = ["name", "phone", "email", "notes"];
+
 // admins/{uid} — who may seed restaurants and manage categories. Created
 // by hand in the Firebase console; the app can't write it.
 export const ADMINS_COLLECTION = "admins";

@@ -6,23 +6,28 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run --config vitest.config.mjs",
+    "test:watch": "vitest --config vitest.config.mjs",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-tablemates \"vitest run --config vitest.rules.config.mjs\""
   },
   "dependencies": {
     "firebase": "^12.19.0",
     "lucide-react": "^1.44.0",
     "mapbox-gl": "^3.30.0",
-    "moment": "^2.31.0",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@tailwindcss/postcss": "^4",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
-    "tailwindcss": "^4"
+    "firebase-tools": "^15.31.0",
+    "tailwindcss": "^4",
+    "vitest": "^5.0.2"
   }
 }

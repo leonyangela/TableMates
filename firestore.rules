@@ -42,6 +42,20 @@ service cloud.firestore {
       return booking.get('status', 'active') == 'cancelled';
     }
 
+    // Personal details that must never be on a (publicly readable)
+    // booking doc; they live in bookings/{id}/private/contact.
+    function contactFields() {
+      return ['name', 'phone', 'email', 'notes'];
+    }
+
+    // An update may remove contact fields left on older bookings, but
+    // never add or change them.
+    function addsNoContactFields() {
+      let diff = request.resource.data.diff(resource.data);
+      return !diff.addedKeys().hasAny(contactFields())
+        && !diff.changedKeys().hasAny(contactFields());
+    }
+
     // Host or confirmed guest of a table.
     function atTable(booking, userId) {
       return userId == booking.userId
@@ -229,16 +243,19 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
-    // bookings — one doc per table. `userId` is the host.
+    // bookings — one doc per table. `userId` is the host. Publicly
+    // readable (open tables are browsable), so no personal details:
+    // those go in the private/contact subdocument below.
     // ---------------------------------------------------------------
     match /bookings/{bookingId} {
       allow read: if true;
 
-      // New tables start active and empty.
+      // New tables start active and empty, with no contact details.
       allow create: if signedIn()
         && request.resource.data.userId == uid()
         && request.resource.data.get('status', 'active') == 'active'
-        && request.resource.data.get('joinedUserIds', []).size() == 0;
+        && request.resource.data.get('joinedUserIds', []).size() == 0
+        && !request.resource.data.keys().hasAny(contactFields());
 
       // Host: can update anything on their own table (edit, approve,
       // remove guests, cancel) — except who owns it, and a cancelled
@@ -246,7 +263,15 @@ service cloud.firestore {
       allow update: if signedIn()
         && resource.data.userId == uid()
         && request.resource.data.userId == resource.data.userId
-        && !(isCancelled(resource.data) && !isCancelled(request.resource.data));
+        && !(isCancelled(resource.data) && !isCancelled(request.resource.data))
+        && addsNoContactFields();
+
+      // Admin migration: moves contact details off older bookings (see
+      // migrateBookingContacts) and sets the public hostName.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name', 'phone', 'email', 'notes', 'hostName'])
+        && addsNoContactFields();
 
       // Guest instant join on an open_public table (joinPublicTable):
       // only the seat/guest fields, only adding themselves, never
@@ -281,6 +306,35 @@ service cloud.firestore {
         && request.resource.data.seatsAvailable >= 0;
 
       allow delete: if signedIn() && resource.data.userId == uid();
+
+      // -------------------------------------------------------------
+      // bookings/{id}/private/contact — the host's name, phone, email
+      // and notes. Host and admins only. Writes check the booking as it
+      // will be after the write, so it can be created in the same batch
+      // as its booking.
+      // -------------------------------------------------------------
+      match /private/{docId} {
+        function validContact(data) {
+          return data.keys().hasOnly(['name', 'phone', 'email', 'notes'])
+            && data.get('name', '') is string && data.get('name', '').size() <= 100
+            && data.get('phone', '') is string && data.get('phone', '').size() <= 40
+            && data.get('email', '') is string && data.get('email', '').size() <= 254
+            && data.get('notes', '') is string && data.get('notes', '').size() <= 1000;
+        }
+
+        allow read: if signedIn()
+          && docId == 'contact'
+          && (get(bookingPath(bookingId)).data.userId == uid() || isAdmin());
+
+        allow create, update: if signedIn()
+          && docId == 'contact'
+          && validContact(request.resource.data)
+          && existsAfter(bookingPath(bookingId))
+          && (getAfter(bookingPath(bookingId)).data.userId == uid() || isAdmin());
+
+        allow delete: if signedIn()
+          && (get(bookingPath(bookingId)).data.userId == uid() || isAdmin());
+      }
     }
 
     // ---------------------------------------------------------------

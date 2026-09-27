@@ -3,6 +3,7 @@ import Link from "next/link";
 import FooterColumn from "./footer-columns.component";
 import MetaLabel from "@/components/ui/meta-label.component";
 import { FOOTER_LINKS } from "@/lib/constants/footer.constants";
+import { AUTHOR } from "@/lib/constants/author.constants";
 import Button from "@/components/button/button.component";
 
 /**
@@ -29,9 +30,34 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="mt-20 flex flex-col gap-2 border-t border-paper/10 py-6 sm:flex-row sm:justify-between">
+      {/* relative z-10: the oversized wordmark below overflows its line box
+          upward (leading 0.8), so without this it sits on top of these
+          links and swallows their clicks. */}
+      <div className="relative z-10 mt-20 flex flex-col gap-4 border-t border-paper/10 py-6 sm:flex-row sm:items-center sm:justify-between">
         <MetaLabel>&copy; {new Date().getFullYear()} TableMates</MetaLabel>
-        <MetaLabel>Good food tastes better together</MetaLabel>
+
+        {/* Portfolio credit */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <MetaLabel>
+            A portfolio project by{" "}
+            <span className="text-paper">{AUTHOR.name}</span>
+          </MetaLabel>
+          <ul className="flex gap-5">
+            {AUTHOR.links.map(({ label, href }) => (
+              <li key={label}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-meta text-[11px] uppercase tracking-[0.14em] text-paper/70 underline decoration-paper/30 underline-offset-4 transition hover:text-coffee-bean-300 hover:decoration-coffee-bean-300"
+                >
+                  {label}
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       {/* Wordmark, cropped by the bottom of the page. */}

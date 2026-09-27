@@ -23,7 +23,7 @@ import {
   BOOKINGS_COLLECTION,
   JOIN_REQUESTS_COLLECTION,
 } from "@/lib/constants/firestore-collections.constants";
-import moment from "moment";
+import { getRestaurantWallClock } from "@/lib/utils/restaurant-time.utils";
 
 /**
  * Rewritten against your actual firestore.rules. There was never a
@@ -102,6 +102,9 @@ function tableFromBooking(booking) {
   };
 }
 
+// How long a table counts as "in progress" after it starts.
+const DINING_WINDOW_MS = 2 * 60 * 60 * 1000;
+
 /**
  * Maps an entry's rawStatus to what the UI shows. rawStatus is "accepted"
  * for a host's own table and for any table the guest is already in
@@ -123,31 +126,29 @@ export function deriveDiningStatus(entry, now = new Date()) {
   }
 
   const tableTime = combineDateAndTime(entry.table?.date, entry.table?.time);
+  // Table times are the restaurant's clock, so compare on that clock.
+  const current = getRestaurantWallClock(now);
 
   if (entry.rawStatus === MEMBERSHIP_STATUS.PENDING) {
     // Never answered before the table started: it can't be accepted any
     // more, so it expires instead of waiting forever.
-    return tableTime && now >= tableTime
+    return tableTime && current >= tableTime
       ? DINING_STATUS.EXPIRED
       : DINING_STATUS.AWAITING_CONFIRMATION;
   }
 
-  const current = moment(now);
-  const start = moment(tableTime);
-  const end = moment(tableTime).add(2, "hour"); // Assuming a 2-hour dining window
-
-  let status;
-
-  if (current.isBefore(start)) {
-    status = DINING_STATUS.COMING_SOON;
-  } else if (current.isBetween(start, end, null, "[]")) {
-    // '[]' makes the check inclusive of start and end times
-    status = DINING_STATUS.IN_PROGRESS;
-  } else {
-    status = DINING_STATUS.COMPLETED;
+  if (!tableTime) {
+    return DINING_STATUS.COMPLETED;
   }
 
-  return status;
+  if (current < tableTime) {
+    return DINING_STATUS.COMING_SOON;
+  }
+
+  // Inclusive of both ends.
+  return current.getTime() <= tableTime.getTime() + DINING_WINDOW_MS
+    ? DINING_STATUS.IN_PROGRESS
+    : DINING_STATUS.COMPLETED;
 }
 
 function bookingToEntry(

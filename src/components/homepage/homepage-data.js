@@ -2,86 +2,61 @@
 
 import { useEffect, useState } from "react";
 
-import { getHomepageRestaurantSections } from "@/services/restaurantService";
+import { getHomepageSummary } from "@/services/restaurantService";
 
-// Enough to cover every restaurant: the homepage derives its featured
-// list, cuisine index and counts from the full, quality-sorted list.
-const ALL = 500;
+// Fallback only: normally the summary is rendered on the server (see
+// app/page.js). If that failed, the hero and the content below it share
+// one client-side fetch. Cleared on failure so a retry can fetch again.
+let summaryPromise = null;
 
-// One fetch per page load, shared by the hero and the content below it.
-// Cleared on failure so a retry can fetch again.
-let restaurantsPromise = null;
-
-function loadRestaurants() {
-  if (!restaurantsPromise) {
-    restaurantsPromise = getHomepageRestaurantSections({
-      topRatedLimit: ALL,
-      trendingLimit: 0,
-    })
-      .then((result) => result.topRated)
-      .catch((error) => {
-        restaurantsPromise = null;
-        throw error;
-      });
+function loadSummary() {
+  if (!summaryPromise) {
+    summaryPromise = getHomepageSummary().catch((error) => {
+      summaryPromise = null;
+      throw error;
+    });
   }
-  return restaurantsPromise;
+  return summaryPromise;
 }
 
-/** Every restaurant, best first (rating, then review count). */
-export function useHomepageData() {
-  const [restaurants, setRestaurants] = useState([]);
-  const [loading, setLoading] = useState(true);
+/**
+ * The homepage's restaurant summary: the server-rendered one when there
+ * is one, otherwise fetched in the browser.
+ */
+export function useHomepageData(initialSummary) {
+  const [summary, setSummary] = useState(initialSummary ?? null);
   const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
+  const needsFetch = !initialSummary;
 
   useEffect(() => {
+    if (!needsFetch) return undefined;
+
     let cancelled = false;
 
-    loadRestaurants()
+    loadSummary()
       .then((result) => {
         if (!cancelled) {
-          setRestaurants(result);
+          setSummary(result);
           setError(null);
         }
       })
       .catch((fetchError) => {
         console.error("Failed to load homepage restaurants:", fetchError);
         if (!cancelled) setError(fetchError);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [needsFetch, attempt]);
 
   const retry = () => {
-    setLoading(true);
+    setError(null);
     setAttempt((current) => current + 1);
   };
 
-  return { restaurants, loading, error, retry };
-}
-
-/**
- * Cuisines with the most restaurants first, each with its count and its
- * best-rated restaurant (the list is already sorted best first).
- */
-export function groupByCuisine(restaurants, limit = 8) {
-  const groups = new Map();
-
-  for (const restaurant of restaurants) {
-    if (!restaurant.category) continue;
-    const group = groups.get(restaurant.category);
-    if (group) group.count += 1;
-    else groups.set(restaurant.category, { name: restaurant.category, count: 1, top: restaurant });
-  }
-
-  return [...groups.values()]
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, limit);
+  return { summary, loading: !summary && !error, error, retry };
 }
 
 export const restaurantHref = (restaurant) =>

@@ -1,9 +1,12 @@
 // Reuses the existing 24h -> 12h time formatter so the journey page and
 // the restaurant details panel render times identically.
 import { formatTimeLabel } from "@/lib/utils/formatters.utils";
+import { getRestaurantWallClock } from "@/lib/utils/restaurant-time.utils";
 
 /**
- * "2026-09-20" + "19:00" -> Date, in local time.
+ * "2026-09-20" + "19:00" -> Date, read as local time. That keeps its
+ * day/month fields equal to the table's own date for display; compare it
+ * with getRestaurantWallClock(), never with `new Date()`.
  *
  * Returns null (rather than an Invalid Date) when either input is missing
  * or unparseable, so every caller can do a single `if (!date) return ...`
@@ -37,14 +40,15 @@ export function formatDiningDateTime(dateStr, timeStr) {
 }
 
 /**
- * True once a table's start time is at or before `now`. A table with no
+ * True once a table's start time is at or before `now` on the
+ * restaurant's clock (see restaurant-time.utils). A table with no
  * parseable date/time is treated as not started, so bad data hides
  * nothing rather than silently dropping tables.
  */
 export function hasTableStarted(table, now = new Date()) {
   const start = combineDateAndTime(table?.date, table?.time);
 
-  return start ? start.getTime() <= now.getTime() : false;
+  return start ? start.getTime() <= getRestaurantWallClock(now).getTime() : false;
 }
 
 /** Action id for removing one guest, shared by the hooks and the guest list UI. */
@@ -55,4 +59,26 @@ export function removeGuestActionId(bookingId, guestId) {
 /** Action id for a guest's seat-change request on one table. */
 export function seatChangeActionId(bookingId) {
   return `seats:${bookingId}`;
+}
+
+/**
+ * The host's public display name for a booking. `hostName` is the public
+ * field; bookings written before contact details moved to the private
+ * subdocument only have `name`, so it's the fallback until they're
+ * migrated.
+ */
+export function getHostName(booking) {
+  return booking?.hostName || booking?.name || null;
+}
+
+const SHORT_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+
+/** "2026-09-20" -> "Sun, Sep 20". The date as written, in any time zone. */
+export function formatShortDate(dateStr) {
+  const date = combineDateAndTime(dateStr, "00:00");
+  return date ? SHORT_DATE_FORMAT.format(date) : dateStr;
 }

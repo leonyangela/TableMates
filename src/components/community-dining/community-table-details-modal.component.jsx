@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import Image from "next/image";
 import { Utensils } from "lucide-react";
 import ModalShell from "@/components/ui/modal-shell.component";
@@ -38,15 +37,6 @@ export default function CommunityTableDetailsModal({
     table.occasion?.toLowerCase() === "other"
       ? table.otherOccasion || table.occasion
       : table.occasion;
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose?.();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
 
   const backdrop = useBackdropClose(onClose);
 

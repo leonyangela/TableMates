@@ -11,9 +11,6 @@ import { removeGuestFromTable } from "@/services/communityDiningService";
 import { hasTableStarted } from "@/lib/utils/dining-journey.utils";
 import { isTableCancelled } from "@/lib/constants/dining-journey.constants";
 
-// Re-exported so BookingFormModal's existing import
-// (`{ DEFAULT_BOOKING_FORM, useBookingStore } from ".../useBookingStore"`)
-// keeps working without needing a second import line.
 export { DEFAULT_BOOKING_FORM };
 
 const getErrorMessage = (error) => {
@@ -29,10 +26,9 @@ const getErrorMessage = (error) => {
  * the form's save/submission state, and the create/update calls
  * BookingFormModal triggers on submit.
  *
- * addBooking/updateBooking now write to Firestore via bookingService.js —
- * the actual persistence logic (field mapping, the editable-fields
- * allowlist on update) lives there, not here. This store stays focused on
- * UI/save state, same as before.
+ * Persistence (field mapping, the editable-fields allowlist, the private
+ * contact doc) lives in bookingService.js; this store only tracks the
+ * modal's UI and save state.
  */
 export const useBookingStore = create((set, get) => ({
   // Which restaurant the modal is open for. null means closed — this is
@@ -91,7 +87,7 @@ export const useBookingStore = create((set, get) => ({
     set({ editorError: null });
 
     try {
-      const booking = await getBookingDetails(bookingId);
+      const booking = await getBookingDetails(bookingId, { includeContact: true });
 
       if (!booking) {
         throw new Error("This table no longer exists.");
@@ -148,7 +144,7 @@ export const useBookingStore = create((set, get) => ({
         hostId: auth.currentUser?.uid,
       });
 
-      const fresh = await getBookingDetails(editingBooking.id);
+      const fresh = await getBookingDetails(editingBooking.id, { includeContact: true });
 
       if (get().editingBooking?.id === editingBooking.id && fresh) {
         set({ editingBooking: fresh });
@@ -193,9 +189,7 @@ export const useBookingStore = create((set, get) => ({
     }
 
     // Actions run outside React, so this reads Firebase Auth's own
-    // current-user state directly rather than going through the
-    // useAuth() hook. ASSUMPTION: lib/firebase/config exports `auth`
-    // alongside `db` — adjust this import if yours differs.
+    // current-user state directly rather than going through useAuth().
     const userId = auth.currentUser?.uid;
 
     set({ isSaving: true, saveError: null });

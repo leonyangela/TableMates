@@ -18,7 +18,7 @@ import Reveal from "@/components/ui/reveal.component";
 import CuisineIndex from "./cuisine-index.component";
 import SelectedTables from "./selected-tables.component";
 import { EDITORIAL_IMAGES } from "@/lib/constants/editorial-images";
-import { groupByCuisine, useHomepageData } from "./homepage-data";
+import { useHomepageData } from "./homepage-data";
 import Button from "@/components/button/button.component";
 
 const META = "font-meta text-[11px] uppercase tracking-[0.14em]";
@@ -27,21 +27,14 @@ const META = "font-meta text-[11px] uppercase tracking-[0.14em]";
  * The idea: a statement set large, with a photograph bleeding off the
  * left edge and live counts beside it.
  * ------------------------------------------------------------------ */
-const TheIdea = ({ restaurants, cuisineCount, loading }) => {
-  const rated = restaurants.filter(
-    (restaurant) => typeof restaurant.rating === "number",
-  );
-  const averageRating = rated.length
-    ? (
-        rated.reduce((sum, restaurant) => sum + restaurant.rating, 0) /
-        rated.length
-      ).toFixed(1)
-    : null;
-
+const TheIdea = ({ summary, loading }) => {
   const stats = [
-    { value: restaurants.length, label: "Restaurants" },
-    { value: cuisineCount, label: "Cuisines" },
-    averageRating && { value: averageRating, label: "Average rating" },
+    { value: summary?.restaurantCount, label: "Restaurants" },
+    { value: summary?.cuisineCount, label: "Cuisines" },
+    (loading || summary?.averageRating != null) && {
+      value: summary?.averageRating?.toFixed(1),
+      label: "Average rating",
+    },
   ].filter(Boolean);
 
   return (
@@ -299,25 +292,21 @@ const Closing = ({ signedIn }) => (
   </section>
 );
 
-const HomeContent = () => {
+/**
+ * `summary` is rendered on the server (app/page.js); when it's missing,
+ * useHomepageData fetches it in the browser instead.
+ */
+const HomeContent = ({ summary: initialSummary }) => {
   const { user } = useAuth();
-  const { restaurants, loading, error, retry } = useHomepageData();
-  const cuisines = groupByCuisine(restaurants);
-  const cuisineCount = new Set(
-    restaurants.map((restaurant) => restaurant.category).filter(Boolean),
-  ).size;
+  const { summary, loading, error, retry } = useHomepageData(initialSummary);
 
   return (
     <div className="space-y-32 bg-ink px-5 pb-16 pt-24 font-body text-paper md:space-y-48 md:px-10 md:pt-32">
       {user && <Agenda userId={user.uid} />}
-      <TheIdea
-        restaurants={restaurants}
-        cuisineCount={cuisineCount}
-        loading={loading}
-      />
-      <CuisineIndex cuisines={cuisines} loading={loading} />
+      <TheIdea summary={summary} loading={loading} />
+      <CuisineIndex cuisines={summary?.cuisines ?? []} loading={loading} />
       <SelectedTables
-        restaurants={restaurants}
+        restaurants={summary?.featured ?? []}
         loading={loading}
         error={error}
         onRetry={retry}

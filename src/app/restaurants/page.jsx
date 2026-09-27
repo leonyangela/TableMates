@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 
 import WrapperComponent from "@/components/wrapper/wrapper.component";
@@ -20,6 +21,11 @@ import RestaurantPopupCard from "@/components/restaurants/restaurant-modal-card.
 import RestaurantDeepLink from "@/components/restaurants/restaurant-deep-link.component";
 import { getRestaurantById } from "@/services/restaurantService";
 import Button from "@/components/button/button.component";
+import {
+  DEFAULT_FILTERS,
+  filtersFromSearchParams,
+  filtersToSearchParams,
+} from "@/lib/utils/restaurant-filters.utils";
 
 const RestaurantMap = dynamic(
   () => import("@/components/restaurants/restaurant-map.component"),
@@ -30,16 +36,6 @@ const RestaurantMap = dynamic(
     ),
   },
 );
-
-// other is an array now (trending/top can both be active at once), and
-// priceMin/priceMax replace the old fixed "$"/"$$" tiers.
-const DEFAULT_FILTERS = {
-  priceMin: null,
-  priceMax: null,
-  category: null,
-  other: [],
-  search: "",
-};
 
 // Wait this long after the last keystroke before querying Firestore.
 const SEARCH_DEBOUNCE_MS = 300;
@@ -59,11 +55,35 @@ function RestaurantCardSkeleton() {
 
 const RESTAURANT_SKELETONS = Array.from({ length: 6 }, (_, index) => index);
 
+/**
+ * The filters and search live in the URL (see restaurant-filters.utils),
+ * so a filtered list can be shared, bookmarked and survives a refresh.
+ * useSearchParams needs a Suspense boundary on a prerendered page.
+ */
 export default function RestaurantsPage() {
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  return (
+    <Suspense fallback={<WrapperComponent paddingY="sm"><div className="min-h-screen" /></WrapperComponent>}>
+      <RestaurantsView />
+    </Suspense>
+  );
+}
+
+function RestaurantsView() {
+  const searchParams = useSearchParams();
+  const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams]);
+
+  // Writes filters to the URL. replaceState (rather than router.replace)
+  // skips a server round trip; Next.js still syncs useSearchParams to it.
+  const setFilters = (next) => {
+    const value = typeof next === "function" ? next(filters) : next;
+    const params = filtersToSearchParams(value, window.location.search);
+    const query = params.toString();
+    window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+  };
+
   // What's in the search box right now; filters.search only follows it
   // once typing pauses, so each keystroke doesn't fire a query.
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState(filters.search);
   const searchTimerRef = useRef(null);
 
   const hoveredId = useRestaurantSelectionStore((state) => state.hoveredId);

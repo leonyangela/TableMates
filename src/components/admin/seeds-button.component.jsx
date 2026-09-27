@@ -6,6 +6,7 @@ import {
   seedRestaurants,
 } from "@/lib/utils/seeding-btn.utils";
 import Button from "@/components/button/button.component";
+import { migrateBookingContacts } from "@/services/adminService";
 
 const SeedRestaurantsButton = () => {
   const [loading, setLoading] = useState(false);
@@ -75,6 +76,41 @@ export const BackfillSearchKeywordsButton = () => {
         {loading
           ? "Updating search keywords & categories..."
           : "Backfill search keywords & categories"}
+      </Button>
+      {message && <p className="text-sm text-paper/65">{message}</p>}
+    </div>
+  );
+};
+
+/**
+ * Admin action: moves contact details off bookings created before they
+ * lived in the private subdocument (see migrateBookingContacts).
+ */
+export const MigrateBookingContactsButton = () => {
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const handleMigrate = async () => {
+    try {
+      setLoading(true);
+      setMessage("");
+
+      const result = await migrateBookingContacts();
+
+      setMessage(`Contact details made private on ${result.count} bookings.`);
+    } catch (error) {
+      console.error("Failed to migrate booking contacts:", error);
+
+      setMessage(`Failed to migrate: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Button variant="outline" size="sm" onClick={handleMigrate} disabled={loading}>
+        {loading ? "Migrating booking contacts..." : "Make booking contacts private"}
       </Button>
       {message && <p className="text-sm text-paper/65">{message}</p>}
     </div>

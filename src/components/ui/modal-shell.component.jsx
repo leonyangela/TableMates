@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 
 import MetaLabel from "./meta-label.component";
 import Button from "@/components/button/button.component";
+import { useDialog } from "@/hooks/useDialog";
 
 const WIDTHS = {
   md: "max-w-lg",
@@ -14,7 +15,8 @@ const WIDTHS = {
 /**
  * Shared modal frame: dark backdrop, a square panel with a hairline
  * border, and a header of small label + display title + optional
- * subtitle + close button. Content scrolls inside the panel.
+ * subtitle + close button. Content scrolls inside the panel. Escape,
+ * focus trapping and focus return come from useDialog.
  *
  *   backdropProps: from useBackdropClose(onClose)
  *   media:         optional node rendered full-bleed above the header
@@ -31,16 +33,20 @@ export default function ModalShell({
   labelledBy = "modal-title",
   children,
 }) {
+  const dialogRef = useDialog(onClose);
+
   return (
     <div
       className={`fixed inset-0 ${zIndex} flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm`}
       {...backdropProps}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? labelledBy : undefined}
-        className={`relative max-h-[90vh] w-full overflow-y-auto overscroll-contain border border-paper/15 bg-ink text-paper ${WIDTHS[size] ?? WIDTHS.md}`}
+        tabIndex={-1}
+        className={`relative outline-none max-h-[90vh] w-full overflow-y-auto overscroll-contain border border-paper/15 bg-ink text-paper ${WIDTHS[size] ?? WIDTHS.md}`}
       >
         {media}
 
