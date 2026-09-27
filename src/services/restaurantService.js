@@ -5,6 +5,7 @@ import {
   getCountFromServer,
   getDoc,
   getDocs,
+  getDocsFromServer,
   limit,
   orderBy,
   query,
@@ -22,6 +23,7 @@ import {
   getSearchTokens,
   matchesSearch,
 } from "@/lib/utils/restaurant-search.utils";
+import { buildHomepageSummary } from "@/lib/utils/homepage-summary.utils";
 import {
   META_COLLECTION,
   RESTAURANT_CATEGORIES_DOC_ID,
@@ -183,9 +185,7 @@ function desc(a, b) {
 /**
  * Ranks by quality: highest rating wins, reviewCount as the tiebreak, and
  * createdAt as a final fallback when a pair has neither rating nor
- * reviewCount to compare. Used for both the homepage's "Top rated" (across
- * everyone) and "Trending" (within just the flagged pool) — the two
- * sections differ in which restaurants they rank, not in how.
+ * reviewCount to compare. Orders the homepage's featured restaurants.
  */
 function compareByQuality(a, b) {
   if (
@@ -305,8 +305,10 @@ export async function getRestaurantById(id) {
  * or a one-word search), this is a Firestore count aggregation — no
  * documents are downloaded. Only when client-side filters are active
  * (price, trending, top rated, extra search words) does it read the
- * server-side matches to count what passes them; for a search that's
- * just the matching restaurants, never the whole collection.
+ * server-side matches to count what passes them. For a search or a
+ * category that's a small set; for a price or trending filter with no
+ * category it's the whole collection (see "Known limitations" in the
+ * README).
  */
 export async function getRestaurantsCount(filters = {}) {
   const baseQuery = query(
@@ -348,44 +350,25 @@ export async function getRestaurantCategories() {
 }
 
 /* -----------------------------------------------------------------------
- * HOMEPAGE SECTIONS (whole-collection ranking — see scaling note below)
+ * HOMEPAGE
  * ---------------------------------------------------------------------- */
 
-const TRENDING_LIMIT = 6;
-const TOP_RATED_LIMIT = 6;
-
 /**
- * Homepage sections, computed from a single fetch of the whole collection:
- *  - topRated: EVERY restaurant, ranked by rating then reviewCount. Always
- *    has up to `topRatedLimit` results regardless of the `trending` flag.
- *  - trending: ONLY restaurants flagged `trending: true`, ranked the same
- *    way among themselves. Purely editorial — can come back with fewer
- *    than `trendingLimit`, or none; callers should hide the section
- *    entirely when empty rather than backfilling it with unrelated data.
+ * The homepage's counts, featured restaurants and cuisine index.
  *
- * Scaling note: there's no Firestore query that can express either
- * ranking (both need to compare rating/reviewCount/createdAt across
- * documents), so this has to read the whole collection client-side. Fine
- * at small/medium scale. At real scale (thousands of rows), the right fix
- * is precomputing these — e.g. a scheduled Cloud Function that recomputes
- * a small "homepage_picks" document/collection periodically — rather than
- * ranking the entire collection on every homepage load.
+ * Ranking (rating, then review count, then recency) compares across
+ * documents, which no Firestore query can express, so this reads the whole
+ * collection. It runs on the server when the homepage is regenerated (see
+ * app/page.js, revalidated hourly), not once per visitor, and sends the
+ * browser only the small summary.
  */
-export async function getHomepageRestaurantSections({
-  trendingLimit = TRENDING_LIMIT,
-  topRatedLimit = TOP_RATED_LIMIT,
-} = {}) {
-  const snapshot = await getDocs(collection(db, RESTAURANTS_COLLECTION));
-  const restaurants = snapshot.docs.map(toRestaurant);
+export async function getHomepageSummary() {
+  // From the server only: plain getDocs() answers from the (empty) local
+  // cache when Firestore is unreachable, which would bake "0 restaurants"
+  // into the cached page for an hour. This throws instead, and the page
+  // falls back to fetching in the browser.
+  const snapshot = await getDocsFromServer(collection(db, RESTAURANTS_COLLECTION));
+  const restaurants = snapshot.docs.map(toRestaurant).sort(compareByQuality);
 
-  const topRated = [...restaurants]
-    .sort(compareByQuality)
-    .slice(0, topRatedLimit);
-
-  const trending = restaurants
-    .filter((restaurant) => restaurant.trending)
-    .sort(compareByQuality)
-    .slice(0, trendingLimit);
-
-  return { trending, topRated };
+  return buildHomepageSummary(restaurants);
 }
