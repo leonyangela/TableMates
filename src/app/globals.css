@@ -73,6 +73,23 @@ body {
     animation-delay: var(--line-delay, 0ms);
   }
 
+  /* Testimonials slider: the active quote's progress bar fills over
+     --progress-duration; when it finishes the slider advances (see
+     components/testimonials). No animation, so no autoplay, under
+     reduced motion. */
+  .testimonial-progress {
+    animation: testimonial-progress var(--progress-duration, 6000ms) linear both;
+  }
+
+  @keyframes testimonial-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
   @keyframes hero-line-in {
     from {
       transform: translateY(105%);
