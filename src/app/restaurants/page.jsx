@@ -5,6 +5,9 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 
 import WrapperComponent from "@/components/wrapper/wrapper.component";
+import MetaLabel from "@/components/ui/meta-label.component";
+import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states.component";
+import { DISPLAY } from "@/components/ui/styles";
 import RestaurantCard from "@/components/restaurants/restaurant-card.component";
 import RestaurantFilters from "@/components/restaurants/restaurant-filters.component";
 import RestaurantDetailsPanel from "@/components/restaurants/restaurant-details-panel.component";
@@ -16,13 +19,14 @@ import { useBookingStore } from "@/store/booking/booking.store";
 import RestaurantPopupCard from "@/components/restaurants/restaurant-modal-card.component";
 import RestaurantDeepLink from "@/components/restaurants/restaurant-deep-link.component";
 import { getRestaurantById } from "@/services/restaurantService";
+import Button from "@/components/button/button.component";
 
 const RestaurantMap = dynamic(
   () => import("@/components/restaurants/restaurant-map.component"),
   {
     ssr: false,
     loading: () => (
-      <div className="h-full w-full animate-pulse rounded-[2rem] bg-accent" />
+      <div className="h-full w-full animate-pulse bg-paper/5" />
     ),
   },
 );
@@ -42,12 +46,12 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 function RestaurantCardSkeleton() {
   return (
-    <div className="flex gap-4 rounded-[1.5rem] bg-white p-3">
-      <div className="h-24 w-24 shrink-0 animate-pulse rounded-2xl bg-accent" />
-      <div className="flex-1 space-y-2 py-2">
-        <div className="h-5 w-3/4 animate-pulse rounded-full bg-accent" />
-        <div className="h-4 w-1/2 animate-pulse rounded-full bg-accent" />
-        <div className="h-4 w-1/4 animate-pulse rounded-full bg-accent" />
+    <div className="flex gap-5 border-t border-paper/10 py-5">
+      <Skeleton className="h-24 w-20 shrink-0" />
+      <div className="flex-1 space-y-3 py-1">
+        <Skeleton className="h-3 w-1/3" />
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-3 w-1/4" />
       </div>
     </div>
   );
@@ -189,128 +193,116 @@ export default function RestaurantsPage() {
         <RestaurantDeepLink onOpen={handleOpenLinkedRestaurant} />
       </Suspense>
 
-      <div className="space-y-3 px-3 pt-3">
-        {/* Search & filters — dark banner, matching the homepage hero. */}
-        <section className="relative isolate overflow-hidden rounded-[2rem] bg-rosy-copper-950 px-5 py-6 text-white md:px-8 md:py-8">
-          <div className="pointer-events-none absolute -left-24 -top-32 -z-10 h-80 w-80 rounded-full bg-primary/25 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-40 right-10 -z-10 h-80 w-80 rounded-full bg-info/60 blur-3xl" />
+      <div className="px-5 pt-10 md:px-10 md:pt-14">
+        {/* Header: metadata, the title at poster scale, and the search as
+            one large underlined line with the filters beneath it. */}
+        <header>
+          <div className="flex flex-wrap gap-x-10 gap-y-2">
+            <MetaLabel>Restaurants</MetaLabel>
+            <MetaLabel className="hidden">Brisbane, Australia</MetaLabel>
+            <MetaLabel aria-live="polite">
+              {!loading && !error && totalCount != null
+                ? `Showing ${restaurants.length} of ${totalCount}`
+                : "\u00a0"}
+            </MetaLabel>
+          </div>
 
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                Explore
-              </span>
-              <h1 className="mt-3 font-oswald text-4xl font-bold uppercase leading-none tracking-tight md:text-5xl">
-                Find your <span className="text-primary">table</span>
-              </h1>
+          <div className="mt-10 grid gap-10 md:mt-14 lg:grid-cols-12 lg:items-end">
+            <h1 className={`${DISPLAY.page} lg:col-span-6`}>
+              Find your
+              <br />
+              table<span className="text-coffee-bean-400">.</span>
+            </h1>
+
+            <div className="lg:col-span-6">
+              {/* Searches every restaurant in Firestore, not just the ones
+                  loaded so far (see restaurant-search.utils). */}
+              <form
+                role="search"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  applySearch(searchText);
+                }}
+                className="flex items-center gap-4 border-b border-paper/25 pb-3 transition focus-within:border-coffee-bean-400"
+              >
+                <Search className="h-6 w-6 shrink-0 text-paper/50" strokeWidth={1.5} />
+                <input
+                  type="search"
+                  value={searchText}
+                  onChange={handleSearchChange}
+                  placeholder="Name or cuisine"
+                  aria-label="Search restaurants by name or cuisine"
+                  className="w-full bg-transparent font-display text-[clamp(1.75rem,3vw,2.75rem)] font-medium tracking-[-0.035em] text-paper outline-none placeholder:text-paper/25 [&::-webkit-search-cancel-button]:hidden"
+                />
+                {searchText && (
+                  <Button
+                    variant="icon-ghost"
+                    onClick={handleClearSearch}
+                    aria-label="Clear search"
+                    className="p-1"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                )}
+              </form>
+
+              <div className="mt-6">
+                <RestaurantFilters
+                  filters={filters}
+                  onChange={setFilters}
+                  onClear={handleClearFilters}
+                  restaurants={restaurants}
+                />
+              </div>
             </div>
-            {!loading && !error && totalCount != null && (
-              <p className="text-sm text-accent/70">
-                Showing{" "}
-                <span className="font-semibold text-white">
-                  {restaurants.length}
-                </span>{" "}
-                of {totalCount} restaurants
-              </p>
-            )}
           </div>
-
-          <div className="mt-6 flex flex-col gap-3 xl:flex-row xl:items-center">
-            {/* Searches every restaurant in Firestore, not just the ones
-                loaded so far — see restaurant-search.utils. */}
-            <form
-              role="search"
-              onSubmit={(event) => {
-                event.preventDefault();
-                applySearch(searchText);
-              }}
-              className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-grey-olive-950 xl:w-96 xl:shrink-0"
-            >
-              <Search className="h-4 w-4 shrink-0 text-primary" />
-              <input
-                type="search"
-                value={searchText}
-                onChange={handleSearchChange}
-                placeholder="Search by name or cuisine"
-                aria-label="Search restaurants by name or cuisine"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-grey-olive-400 [&::-webkit-search-cancel-button]:hidden"
-              />
-              {searchText && (
-                <button
-                  type="button"
-                  onClick={handleClearSearch}
-                  aria-label="Clear search"
-                  className="rounded-full p-1 text-grey-olive-500 hover:bg-grey-olive-50 hover:text-grey-olive-950"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </form>
-
-            <RestaurantFilters
-              filters={filters}
-              onChange={setFilters}
-              onClear={handleClearFilters}
-              restaurants={restaurants}
-            />
-          </div>
-        </section>
+        </header>
 
         {/* Results · map · details */}
-        <div className="flex flex-col-reverse gap-3 lg:h-[calc(100svh-7rem)] lg:flex-row">
+        <div className="mt-12 flex flex-col-reverse gap-6 border-t border-paper/10 pt-6 lg:h-[calc(100svh-6rem)] lg:flex-row">
           <div
             className={`min-h-0 shrink-0 lg:w-[24rem] ${
               showDetails ? "hidden lg:block" : ""
             }`}
           >
             {error ? (
-              <div className="rounded-[1.5rem] bg-accent p-6">
-                <p className="text-sm font-semibold text-grey-olive-950">
-                  Couldn&apos;t load restaurants
-                </p>
-                <p className="mt-1 text-sm text-grey-olive-600">
-                  {error.message ?? "Something went wrong."}
-                </p>
-                <button
-                  type="button"
-                  onClick={refetch}
-                  className="mt-4 rounded-full bg-rosy-copper-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary"
-                >
-                  Try again
-                </button>
-              </div>
+              <ErrorState
+                title="Couldn't load restaurants."
+                text={error.message}
+                onRetry={refetch}
+              />
             ) : (
-              <div className="h-full space-y-3 overflow-y-auto overscroll-contain lg:pr-1">
+              <div className="lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+                {/* Its own scroll area only on desktop (fixed-height column).
+                    On phones it grows with its content, so it mustn't be a
+                    scroll container: overscroll-contain there would swallow
+                    page swipes that start on the list. */}
                 {loading ? (
                   RESTAURANT_SKELETONS.map((index) => (
                     <RestaurantCardSkeleton key={index} />
                   ))
                 ) : visibleRestaurants.length === 0 ? (
-                  <div className="rounded-[1.5rem] bg-accent px-6 py-10 text-center">
-                    <h2 className="font-oswald text-2xl font-bold uppercase text-grey-olive-950">
-                      {isSearching
-                        ? `No match for “${filters.search}”`
-                        : "No restaurants found"}
-                    </h2>
-
-                    <p className="mt-2 text-sm leading-6 text-grey-olive-600">
-                      {isSearching
+                  <EmptyState
+                    label="No results"
+                    title={
+                      isSearching
+                        ? `No match for \u201c${filters.search}\u201d.`
+                        : "No restaurants found."
+                    }
+                    text={
+                      isSearching
                         ? "Check the spelling, or search by the start of a word in the name or cuisine."
-                        : "Try removing a filter or exploring a different category."}
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={handleClearFilters}
-                      className="mt-5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rosy-copper-600"
-                    >
-                      Clear filters
-                    </button>
-                  </div>
+                        : "Try removing a filter or exploring a different category."
+                    }
+                    action={
+                      <Button size="sm" onClick={handleClearFilters}>
+                        Clear filters
+                      </Button>
+                    }
+                  />
                 ) : (
                   <>
-                    {visibleRestaurants.map((restaurant) => (
+                    {visibleRestaurants.map((restaurant, index) => (
                       <RestaurantCard
                         key={restaurant.id}
                         restaurant={restaurant}
@@ -319,27 +311,25 @@ export default function RestaurantsPage() {
                         onMouseEnter={() => setHoveredId(restaurant.id)}
                         onMouseLeave={() => setHoveredId(null)}
                         onClick={() => select(restaurant.id)}
+                        // First rows are above the fold (and the page's LCP).
+                        eager={index < 3}
                       />
                     ))}
 
                     {hasMore && (
-                      <button
-                        type="button"
+                      <Button
+                        variant="outline"
                         onClick={loadMore}
                         disabled={loadingMore}
-                        className="w-full rounded-full border border-grey-olive-200 bg-white py-3 text-sm font-semibold text-grey-olive-950 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                        fullWidth
+                        className="mt-6"
                       >
-                        {loadingMore ? (
-                          <span className="flex items-center justify-center gap-2">
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-grey-olive-100 border-t-primary" />
-                            Loading more
-                          </span>
-                        ) : (
-                          `Load more · ${restaurants.length}${
-                            totalCount != null ? ` of ${totalCount}` : ""
-                          }`
-                        )}
-                      </button>
+                        {loadingMore
+                          ? "Loading more"
+                          : `Load more (${restaurants.length}${
+                              totalCount != null ? ` of ${totalCount}` : ""
+                            })`}
+                      </Button>
                     )}
                   </>
                 )}
@@ -347,9 +337,11 @@ export default function RestaurantsPage() {
             )}
           </div>
 
-          {/* Map: gives way to the details panel on small screens. */}
+          {/* Map: gives way to the details panel on small screens. It needs a
+              definite height (not flex-1) on phones, or the map inside
+              (h-full) collapses to 0. */}
           <section
-            className={`h-[45vh] min-h-80 min-w-0 flex-1 overflow-hidden rounded-[2rem] lg:h-full ${
+            className={`h-[50svh] min-h-80 min-w-0 shrink-0 overflow-hidden border border-paper/10 lg:h-full lg:flex-1 lg:shrink ${
               showDetails ? "hidden lg:block" : ""
             }`}
           >
@@ -357,7 +349,7 @@ export default function RestaurantsPage() {
           </section>
 
           {showDetails && (
-            <aside className="w-full shrink-0 lg:h-full lg:w-[26rem]">
+            <aside className="w-full shrink-0 lg:h-full lg:w-[28rem]">
               <RestaurantDetailsPanel
                 restaurant={selectedRestaurant}
                 onClose={closeDetails}

@@ -1,24 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import Button from "@/components/button/button.component";
+
+// NavLink variants → Button variants (all styling lives in Button).
 const VARIANTS = {
-  // Nav bar item (the bar is dark): a pill that fills in when current.
-  link: (isActive) =>
-    `rounded-full px-4 py-2 text-sm font-medium transition ${
-      isActive
-        ? "bg-white/15 text-white"
-        : "text-accent/75 hover:bg-white/10 hover:text-white"
-    }`,
-  // Call to action (e.g. Sign Up).
-  button: () =>
-    "rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-rosy-copper-600",
-  // Row in a light dropdown menu.
-  menu: (isActive) =>
-    `block px-4 py-2 text-sm transition hover:bg-grey-olive-50 ${
-      isActive ? "font-semibold text-primary" : "text-grey-olive-800"
-    }`,
+  // Bar item: the current page in the accent with a rule under it.
+  link: { variant: "tab" },
+  // Call to action (e.g. Join).
+  button: { variant: "primary", size: "sm" },
+  // Row in a dropdown menu.
+  menu: { variant: "menu-item", className: "px-5! py-3!" },
 };
 
 export default function NavLink({
@@ -30,15 +23,19 @@ export default function NavLink({
 }) {
   const pathname = usePathname();
   const isActive = pathname === href;
+  const config = VARIANTS[variant] ?? VARIANTS.link;
 
   return (
-    <Link
+    <Button
       href={href}
       onClick={onClick}
+      variant={config.variant}
+      size={config.size}
+      active={isActive}
       aria-current={isActive ? "page" : undefined}
-      className={`${VARIANTS[variant](isActive)} ${className}`}
+      className={`${config.className ?? ""} ${className}`}
     >
       {title}
-    </Link>
+    </Button>
   );
 }

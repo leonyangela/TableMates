@@ -1,17 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import {
-  ArrowUpRight,
-  Clock3,
-  Flame,
-  MapPin,
-  Star,
-  Utensils,
-  X,
-} from "lucide-react";
+import { Clock3, Flame, MapPin, Utensils, X } from "lucide-react";
 
 import { useRouter } from "next/navigation";
+import MetaLabel from "@/components/ui/meta-label.component";
+import { META } from "@/components/ui/styles";
 import { useAuth } from "@/hooks/useAuth";
 import { useBookingStore } from "@/store/booking/booking.store";
 import {
@@ -20,6 +14,12 @@ import {
 } from "@/lib/utils/formatters.utils";
 import { useState } from "react";
 import { Dialog, DialogAction, DialogCancel, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../dialog/dialog.component";
+import Button from "@/components/button/button.component";
+
+/** Non-empty strings, trimmed, each once (first occurrence wins). */
+const unique = (items) => [
+  ...new Set(items.map((item) => String(item ?? "").trim()).filter(Boolean)),
+];
 
 export default function RestaurantDetailsPanel({ restaurant, onClose }) {
   const router = useRouter();
@@ -31,13 +31,16 @@ export default function RestaurantDetailsPanel({ restaurant, onClose }) {
     return null;
   }
 
-  const tags = [
+  // Tags and features overlap in the data (e.g. "Fine Dining" in both),
+  // and each is keyed by its text: de-duplicate so every item shows once
+  // and keys stay unique.
+  const tags = unique([
     ...(Array.isArray(restaurant.tags) ? restaurant.tags : []),
     ...(Array.isArray(restaurant.features) ? restaurant.features : []),
-  ];
-  const popularDishes = Array.isArray(restaurant.popular_dishes)
-    ? restaurant.popular_dishes
-    : [];
+  ]);
+  const popularDishes = unique(
+    Array.isArray(restaurant.popular_dishes) ? restaurant.popular_dishes : [],
+  );
   const priceLabel = formatPriceRange(restaurant.price_range);
   const openingHoursLabel = formatOpeningHours(restaurant.time_opening);
 
@@ -51,155 +54,130 @@ export default function RestaurantDetailsPanel({ restaurant, onClose }) {
   };
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden rounded-[2rem] bg-white">
+    <div className="flex h-full w-full flex-col overflow-hidden border border-paper/10 bg-ink">
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* Photo header with the name over it */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-rosy-copper-950">
+        {/* Tall photograph; the name sits under it at display size. */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-ink-soft">
           {restaurant.image ? (
             <Image
               src={restaurant.image}
               alt={restaurant.name ?? "Restaurant"}
               fill
               className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 416px"
+              sizes="(max-width: 1024px) 100vw, 448px"
+              // Only rendered once opened, already in view: no point lazy-loading.
+              loading="eager"
             />
           ) : (
-            <div className="flex h-full items-center justify-center">
-              <Utensils className="h-10 w-10 text-accent/50" />
-            </div>
+            <Utensils className="absolute inset-0 m-auto h-8 w-8 text-paper/35" />
           )}
-          <div className="absolute inset-0 bg-linear-to-t from-rosy-copper-950 via-rosy-copper-950/20 to-transparent" />
 
-          <button
-            type="button"
+          <Button
+            variant="icon"
             onClick={onClose}
             aria-label="Close restaurant details"
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-grey-olive-950 backdrop-blur transition hover:bg-white"
+            className="absolute right-3 top-3 bg-ink"
           >
             <X size={18} />
-          </button>
-
-          <div className="absolute inset-x-0 bottom-0 p-5 text-white">
-            <div className="flex flex-wrap gap-1.5">
-              {restaurant.trending && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold">
-                  <Flame size={12} /> Trending
-                </span>
-              )}
-              {typeof restaurant.rating === "number" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur">
-                  <Star size={11} className="fill-current" />
-                  {restaurant.rating.toFixed(1)}
-                  {typeof restaurant.reviewCount === "number" && (
-                    <span className="font-normal text-accent/80">
-                      ({restaurant.reviewCount})
-                    </span>
-                  )}
-                </span>
-              )}
-            </div>
-            <h2 className="mt-2 font-oswald text-3xl font-bold uppercase leading-none tracking-tight">
-              {restaurant.name ?? "Untitled restaurant"}
-            </h2>
-            <p className="mt-1.5 text-sm text-accent/80">
-              {[restaurant.category, priceLabel]
-                .filter(Boolean)
-                .join(" \u00b7 ")}
-            </p>
-          </div>
+          </Button>
         </div>
 
-        <div className="space-y-6 p-5">
-          {restaurant.short_description && (
-            <p className="text-sm leading-6 text-grey-olive-700">
-              {restaurant.short_description}
-            </p>
-          )}
-
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-accent px-3 py-1 text-xs font-medium text-info"
-                >
-                  {tag}
+        <div className="space-y-10 p-6">
+          <div>
+            <p className={`${META} flex flex-wrap gap-x-4 gap-y-1 text-paper/55`}>
+              {restaurant.category && <span>{restaurant.category}</span>}
+              {priceLabel && <span>{priceLabel} pp</span>}
+              {typeof restaurant.rating === "number" && (
+                <span>
+                  {restaurant.rating.toFixed(1)} / 5
+                  {typeof restaurant.reviewCount === "number" &&
+                    ` (${restaurant.reviewCount})`}
                 </span>
-              ))}
-            </div>
-          )}
+              )}
+              {restaurant.trending && (
+                <span className="inline-flex items-center gap-1 text-coffee-bean-300">
+                  <Flame size={11} aria-hidden="true" /> Trending
+                </span>
+              )}
+            </p>
+            <h2 className="mt-3 font-display text-5xl font-semibold leading-[0.9] tracking-[-0.05em]">
+              {restaurant.name ?? "Untitled restaurant"}
+            </h2>
+            {restaurant.short_description && (
+              <p className="mt-5 text-sm leading-6 text-paper/70">
+                {restaurant.short_description}
+              </p>
+            )}
+            {tags.length > 0 && (
+              <p className={`${META} mt-5 flex flex-wrap gap-x-4 gap-y-1 text-paper/45`}>
+                {tags.map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
+              </p>
+            )}
+          </div>
 
           {popularDishes.length > 0 && (
             <section>
-              <h3 className="font-oswald text-lg font-bold uppercase text-grey-olive-950">
-                Popular dishes
-              </h3>
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              <MetaLabel as="h3">Popular dishes</MetaLabel>
+              <ol className="mt-4">
                 {popularDishes.map((dish, index) => (
-                  <div
+                  <li
                     key={dish}
-                    className="flex items-center gap-2 rounded-2xl bg-grey-olive-50 px-3 py-3 text-sm text-grey-olive-800"
+                    className="flex items-baseline gap-4 border-t border-paper/10 py-3"
                   >
-                    <span className="font-oswald text-sm font-bold text-primary">
+                    <span className="font-meta text-[11px] text-paper/40">
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                    {dish}
-                  </div>
+                    <span className="font-display text-xl tracking-[-0.02em]">{dish}</span>
+                  </li>
                 ))}
-              </div>
+              </ol>
             </section>
           )}
 
-          {/* Restaurant details — address is guarded (restaurant.address &&)
+          {/* Restaurant details: address is guarded (restaurant.address &&)
               since it's not present in the sample data yet; add the field
               to enable this row and future map/directions integration. */}
           {(openingHoursLabel || restaurant.address) && (
-            <section className="rounded-2xl bg-rosy-copper-950 p-4 text-white">
-              <h3 className="font-oswald text-lg font-bold uppercase">
-                Restaurant details
-              </h3>
-              <div className="mt-3 space-y-2.5 text-sm">
+            <section>
+              <MetaLabel as="h3">Details</MetaLabel>
+              <dl className="mt-4 space-y-3 border-t border-paper/10 pt-4 text-sm">
                 {openingHoursLabel && (
                   <div className="flex items-center justify-between gap-4">
-                    <span className="inline-flex items-center gap-2 text-accent/70">
-                      <Clock3 size={15} className="text-primary" /> Open
-                    </span>
-                    <span className="font-medium">{openingHoursLabel}</span>
+                    <dt className="inline-flex items-center gap-2 text-paper/60">
+                      <Clock3 size={14} /> Open
+                    </dt>
+                    <dd>{openingHoursLabel}</dd>
                   </div>
                 )}
                 {restaurant.address && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span className="text-accent/90">{restaurant.address}</span>
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="inline-flex items-center gap-2 text-paper/60">
+                      <MapPin size={14} /> Address
+                    </dt>
+                    <dd className="text-right">{restaurant.address}</dd>
                   </div>
                 )}
-              </div>
+              </dl>
             </section>
           )}
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-grey-olive-100 bg-white p-4">
-        <button
-          type="button"
-          onClick={handleOpenBookingModal}
-          className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-semibold text-white transition hover:bg-rosy-copper-600"
-        >
+      <div className="shrink-0 border-t border-paper/10 p-4">
+        <Button arrow fullWidth onClick={handleOpenBookingModal}>
           Book a table
-          <ArrowUpRight
-            size={16}
-            className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-          />
-        </button>
+        </Button>
 
         <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Login to book a table</DialogTitle>
+              <DialogTitle>Log in to book a table</DialogTitle>
 
               <DialogDescription>
                 You need to be logged in before you can book a table at{" "}
-                <span className="font-medium text-grey-olive-950">
+                <span className="font-medium text-paper">
                   {restaurant.name}
                 </span>
                 .
@@ -222,7 +200,7 @@ export default function RestaurantDetailsPanel({ restaurant, onClose }) {
                   setLoginDialogOpen(false);
                 }}
               >
-                Login
+                Log in
               </DialogAction>
             </DialogFooter>
           </DialogContent>

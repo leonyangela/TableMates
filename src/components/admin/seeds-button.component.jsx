@@ -5,6 +5,7 @@ import {
   backfillRestaurantSearchKeywords,
   seedRestaurants,
 } from "@/lib/utils/seeding-btn.utils";
+import Button from "@/components/button/button.component";
 
 const SeedRestaurantsButton = () => {
   const [loading, setLoading] = useState(false);
@@ -29,15 +30,10 @@ const SeedRestaurantsButton = () => {
 
   return (
     <div className="space-y-2">
-      <button
-        type="button"
-        onClick={handleSeedRestaurants}
-        disabled={loading}
-        className="rounded-lg bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
-      >
+      <Button variant="outline" size="sm" onClick={handleSeedRestaurants} disabled={loading}>
         {loading ? "Adding restaurants..." : "Seed restaurants"}
-      </button>
-      {message && <p className="text-sm text-neutral-600">{message}</p>}
+      </Button>
+      {message && <p className="text-sm text-paper/65">{message}</p>}
     </div>
   );
 };
@@ -75,17 +71,12 @@ export const BackfillSearchKeywordsButton = () => {
 
   return (
     <div className="space-y-2">
-      <button
-        type="button"
-        onClick={handleBackfill}
-        disabled={loading}
-        className="rounded-lg bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
-      >
+      <Button variant="outline" size="sm" onClick={handleBackfill} disabled={loading}>
         {loading
           ? "Updating search keywords & categories..."
           : "Backfill search keywords & categories"}
-      </button>
-      {message && <p className="text-sm text-neutral-600">{message}</p>}
+      </Button>
+      {message && <p className="text-sm text-paper/65">{message}</p>}
     </div>
   );
 };

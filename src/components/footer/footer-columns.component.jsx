@@ -1,13 +1,14 @@
 import FooterLink from "./footer-link.component";
+import MetaLabel from "@/components/ui/meta-label.component";
 
 const FooterColumn = ({ title, links }) => {
   return (
     <div>
-      <h2 className="pb-4 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+      <MetaLabel as="h2" className="pb-5">
         {title}
-      </h2>
+      </MetaLabel>
 
-      <ul className="space-y-2.5">
+      <ul className="space-y-3">
         {links.map((link) => (
           <li key={link.href}>
             <FooterLink {...link} />

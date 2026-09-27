@@ -2,7 +2,10 @@
 
 import { useEffect } from "react";
 import Image from "next/image";
-import { Calendar, Utensils, X } from "lucide-react";
+import { Utensils } from "lucide-react";
+import ModalShell from "@/components/ui/modal-shell.component";
+import StatRow from "@/components/ui/stat-row.component";
+import DetailBlock from "@/components/ui/detail-block.component";
 
 import JoinedGuestsList from "./joined-guests-list.component";
 import TableCreatedBy from "../profile/table-created-by.component";
@@ -47,135 +50,78 @@ export default function CommunityTableDetailsModal({
 
   const backdrop = useBackdropClose(onClose);
 
+  const meta = [
+    dateTimeLabel,
+    isHost ? "You're hosting" : null,
+    visibilityLabel,
+    table.isFull ? "Full" : null,
+  ].filter(Boolean);
+
   return (
-    <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      {...backdrop}
-    >
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
-        <div className="relative aspect-video w-full overflow-hidden bg-[#F0EDE7]">
+    <ModalShell
+      label={meta.join("  /  ")}
+      title={table.restaurantName ?? "Untitled restaurant"}
+      onClose={onClose}
+      backdropProps={backdrop}
+      media={
+        <div className="relative aspect-[16/8] w-full overflow-hidden bg-ink-soft">
           {table.restaurantImage ? (
             <Image
               src={table.restaurantImage}
-              alt={table.restaurantName ?? "Restaurant"}
+              alt=""
               fill
               className="object-cover"
-              sizes="420px"
+              sizes="512px"
             />
           ) : (
-            <div className="flex h-full items-center justify-center">
-              <Utensils className="h-10 w-10 text-[#9A938B]" />
-            </div>
+            <Utensils className="absolute inset-0 m-auto h-8 w-8 text-paper/35" />
           )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow-sm backdrop-blur-sm hover:bg-white"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
+      }
+    >
+      {table.tableDescription && (
+        <p className="text-sm leading-6 text-paper/75">{table.tableDescription}</p>
+      )}
 
-        <div className="p-5">
-          <div className="flex items-start justify-between gap-2">
-            <h2 className="text-xl font-semibold text-[#1F1D1B]">
-              {table.restaurantName ?? "Untitled restaurant"}
-            </h2>
-            {table.isFull && (
-              <span className="shrink-0 rounded-full bg-grey-olive-100 px-2 py-0.5 text-xs font-medium text-grey-olive-700">
-                Full
-              </span>
-            )}
-          </div>
+      <StatRow
+        className="mt-8 !grid-cols-3"
+        stats={[
+          { label: "Total seats", value: table.totalSeats ?? "-" },
+          { label: "Joined", value: table.seatsJoined ?? 0 },
+          { label: "Left", value: table.seatsAvailable ?? 0 },
+        ]}
+      />
 
-          {dateTimeLabel && (
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-[#6B6660]">
-              <Calendar className="h-4 w-4" />
-              {dateTimeLabel}
-            </p>
-          )}
+      {occasionLabel && (
+        <DetailBlock label="Occasion">
+          <p className="font-display text-xl tracking-[-0.02em]">{occasionLabel}</p>
+        </DetailBlock>
+      )}
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#6B6660]">
-            {isHost && (
-              <span className="rounded-full bg-[#F5F2ED] px-2 py-0.5 font-medium text-[#514C47]">
-                You&apos;re hosting
-              </span>
-            )}
-            {visibilityLabel && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
-                {visibilityLabel}
-              </span>
-            )}
-          </div>
+      <DetailBlock label="Host">
+        <TableCreatedBy
+          hostId={table.hostId}
+          hostName={table.hostName}
+          createdAt={table.createdAt}
+          isYou={isHost}
+          bookingId={table.id}
+        />
+      </DetailBlock>
 
-          {table.tableDescription && (
-            <p className="mt-4 text-sm leading-6 text-[#514C47]">
-              {table.tableDescription}
-            </p>
-          )}
+      {/* Guest names are shown to the host only; someone browsing just
+          needs to know how full the table is, not who's at it. */}
+      {isHost && (
+        <JoinedGuestsList
+          bookingId={table.id}
+          guests={table.joinedUsers}
+          canRemove={Boolean(onRemoveGuest)}
+          pendingActionId={pendingActionId}
+          error={actionErrors}
+          onRemove={(guestId) => onRemoveGuest(table.id, guestId)}
+        />
+      )}
 
-          <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-            <h3 className="text-sm font-semibold text-[#1F1D1B]">Seats</h3>
-            <dl className="mt-2 grid grid-cols-3 gap-2 text-center text-sm">
-              <div className="rounded-lg bg-[#F8F6F2] px-2 py-2.5">
-                <dt className="text-xs text-[#6B6660]">Total</dt>
-                <dd className="font-semibold text-[#1F1D1B]">
-                  {table.totalSeats ?? "—"}
-                </dd>
-              </div>
-              <div className="rounded-lg bg-[#F8F6F2] px-2 py-2.5">
-                <dt className="text-xs text-[#6B6660]">Joined</dt>
-                <dd className="font-semibold text-[#1F1D1B]">
-                  {table.seatsJoined ?? 0}
-                </dd>
-              </div>
-              <div className="rounded-lg bg-[#F8F6F2] px-2 py-2.5">
-                <dt className="text-xs text-[#6B6660]">Left</dt>
-                <dd className="font-semibold text-[#1F1D1B]">
-                  {table.seatsAvailable ?? 0}
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          {occasionLabel && (
-            <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-              <h3 className="text-sm font-semibold text-[#1F1D1B]">Occasion</h3>
-              <p className="mt-1 text-sm text-[#514C47]">{occasionLabel}</p>
-            </section>
-          )}
-
-          <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-            <h3 className="text-sm font-semibold text-[#1F1D1B]">Host</h3>
-            <div className="mt-1">
-              <TableCreatedBy
-                hostId={table.hostId}
-                hostName={table.hostName}
-                createdAt={table.createdAt}
-                isYou={isHost}
-                bookingId={table.id}
-              />
-            </div>
-          </section>
-
-          {/* Guest names are shown to the host only — someone browsing
-              just needs to know how full the table is, not who's at it. */}
-          {isHost && (
-            <JoinedGuestsList
-              bookingId={table.id}
-              guests={table.joinedUsers}
-              canRemove={Boolean(onRemoveGuest)}
-              pendingActionId={pendingActionId}
-              error={actionErrors}
-              onRemove={(guestId) => onRemoveGuest(table.id, guestId)}
-            />
-          )}
-
-          {children && <div className="mt-5">{children}</div>}
-        </div>
-      </div>
-    </div>
+      {children && <div className="mt-8">{children}</div>}
+    </ModalShell>
   );
 }

@@ -1,5 +1,5 @@
 export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-export const MAP_STYLE = "mapbox://styles/mapbox/streets-v12";
+export const MAP_STYLE = "mapbox://styles/mapbox/dark-v11";
 export const DEFAULT_CENTER = {
   lng: 153.0308782391196,
   lat: -27.468051618835155,

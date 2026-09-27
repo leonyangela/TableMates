@@ -14,12 +14,14 @@ import { summarizeFeedback } from "@/services/profileService";
 
 function Stat({ icon: Icon, value, label, hint }) {
   return (
-    <div className="rounded-lg bg-[#F8F6F2] px-2 py-2.5 text-center" title={hint}>
-      <p className="flex items-center justify-center gap-1 font-semibold text-[#1F1D1B]">
-        <Icon className="h-3.5 w-3.5 text-[#9A938B]" />
+    <div className="border-t border-paper/10 py-4 pr-4" title={hint}>
+      <p className="font-display text-4xl font-semibold leading-none tracking-[-0.05em] text-paper">
         {value}
       </p>
-      <p className="text-xs text-[#6B6660]">{label}</p>
+      <p className="mt-2 flex items-center gap-1.5 font-meta text-[11px] uppercase tracking-[0.12em] text-paper/55">
+        <Icon className="h-3 w-3" />
+        {label}
+      </p>
     </div>
   );
 }
@@ -27,8 +29,8 @@ function Stat({ icon: Icon, value, label, hint }) {
 function Group({ title, children }) {
   return (
     <div>
-      <p className="text-xs font-medium text-[#6B6660]">{title}</p>
-      <div className="mt-1.5 grid grid-cols-3 gap-2">{children}</div>
+      <p className="font-meta text-[11px] uppercase tracking-[0.14em] text-coffee-bean-300">{title}</p>
+      <div className="mt-3 grid grid-cols-2 gap-x-4 sm:grid-cols-3">{children}</div>
     </div>
   );
 }
@@ -44,7 +46,7 @@ export default function ProfileStats({ profile, stats, requestStats }) {
   const hasRatings = feedback.feedbackCount > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-10">
       <Group title="Rating">
         <Stat
           icon={Star}
@@ -119,7 +121,7 @@ export default function ProfileStats({ profile, stats, requestStats }) {
                         stats.tablesLeft)) *
                       100,
                   )}%`
-                : "—"
+                : "-"
             }
             label="Follow-through"
             hint="Tables that went ahead, out of all they committed to"

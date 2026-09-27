@@ -1,9 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { Flame, Star, Utensils } from "lucide-react";
+import { Flame, Utensils } from "lucide-react";
+
+import { META } from "@/components/ui/styles";
 
 import { formatPriceRange } from "@/lib/utils/formatters.utils";
+import Button from "@/components/button/button.component";
 
 /**
  * A result in the restaurants list: photo thumbnail, name, cuisine and
@@ -17,76 +20,67 @@ export default function RestaurantCard({
   onMouseEnter,
   onMouseLeave,
   onClick,
+  eager = false,
 }) {
   const priceLabel = formatPriceRange(restaurant.price_range);
 
+  const active = selected || hovered;
+
   return (
-    <button
-      type="button"
+    <Button
+      variant="bare"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onClick}
       aria-pressed={selected}
-      className={`group flex w-full gap-4 rounded-[1.5rem] p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
-        selected
-          ? "bg-rosy-copper-950 text-white shadow-lg"
-          : hovered
-            ? "bg-white shadow-md"
-            : "bg-white hover:shadow-md"
-      }`}
+      className="relative w-full items-stretch justify-start gap-5 border-t border-paper/10 py-5 text-left"
     >
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-accent">
+      {/* Selection rule */}
+      <span
+        aria-hidden="true"
+        className={`absolute -top-px left-0 h-px bg-coffee-bean-400 transition-all duration-500 ${
+          selected ? "w-full" : active ? "w-1/3" : "w-0"
+        }`}
+      />
+
+      <div className="relative h-24 w-20 shrink-0 overflow-hidden bg-ink-soft">
         {restaurant.image ? (
           <Image
             src={restaurant.image}
             alt=""
             fill
-            sizes="96px"
-            className="object-cover transition duration-500 group-hover:scale-105"
+            sizes="80px"
+            loading={eager ? "eager" : "lazy"}
+            className="object-cover transition duration-700 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <Utensils className="h-6 w-6 text-grey-olive-400" />
-          </div>
-        )}
-        {restaurant.trending && (
-          <span className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white">
-            <Flame size={13} aria-label="Trending" />
-          </span>
+          <Utensils className="absolute inset-0 m-auto h-5 w-5 text-paper/35" />
         )}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
-        {restaurant.category && (
-          <span
-            className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
-              selected ? "text-accent/70" : "text-primary"
-            }`}
-          >
-            {restaurant.category}
-          </span>
-        )}
+        <span className={`${META} flex items-center gap-2 text-paper/55`}>
+          {restaurant.category}
+          {restaurant.trending && (
+            <span className="inline-flex items-center gap-1 text-coffee-bean-300">
+              <Flame size={11} aria-hidden="true" /> Trending
+            </span>
+          )}
+        </span>
         <h2
-          className={`mt-0.5 truncate font-oswald text-xl font-bold uppercase leading-tight ${
-            selected ? "text-white" : "text-grey-olive-950"
+          className={`mt-1.5 truncate font-display text-2xl font-semibold tracking-[-0.03em] transition ${
+            selected ? "text-coffee-bean-400" : "text-paper group-hover:text-coffee-bean-300"
           }`}
         >
           {restaurant.name}
         </h2>
-        <div
-          className={`mt-1.5 flex items-center gap-3 text-sm ${
-            selected ? "text-accent/80" : "text-grey-olive-600"
-          }`}
-        >
+        <p className={`${META} mt-2 flex gap-4 text-paper/55`}>
           {typeof restaurant.rating === "number" && (
-            <span className="inline-flex items-center gap-1">
-              <Star size={13} className="fill-current text-primary" />
-              {restaurant.rating.toFixed(1)}
-            </span>
+            <span>{restaurant.rating.toFixed(1)} / 5</span>
           )}
-          {priceLabel && <span>{priceLabel}</span>}
-        </div>
+          {priceLabel && <span>{priceLabel} pp</span>}
+        </p>
       </div>
-    </button>
+    </Button>
   );
 }

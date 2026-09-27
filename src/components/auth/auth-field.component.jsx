@@ -3,8 +3,10 @@
 import { useId, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-const inputClass =
-  "h-11 w-full rounded-lg border border-gray-300 bg-white text-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 aria-[invalid=true]:border-red-400 aria-[invalid=true]:focus:ring-red-400/20";
+import { FIELD, META } from "@/components/ui/styles";
+import Button from "@/components/button/button.component";
+
+const inputClass = FIELD.input;
 
 function FieldIcon({ Icon }) {
   if (!Icon) return null;
@@ -13,7 +15,7 @@ function FieldIcon({ Icon }) {
     <Icon
       size={18}
       aria-hidden="true"
-      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+      className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-paper/40"
     />
   );
 }
@@ -35,7 +37,7 @@ export function AuthField({
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-gray-700">
+      <label htmlFor={id} className={FIELD.label}>
         {label}
       </label>
       <div className="relative">
@@ -44,12 +46,12 @@ export function AuthField({
           id={id}
           aria-invalid={invalid || undefined}
           aria-describedby={hintId}
-          className={`${inputClass} ${Icon ? "pl-10" : "pl-3"} pr-3`}
+          className={`${inputClass} ${Icon ? "!pl-7" : ""}`}
           {...inputProps}
         />
       </div>
       {hint && (
-        <p id={hintId} className="mt-1 text-xs text-gray-500">
+        <p id={hintId} className={FIELD.hint}>
           {hint}
         </p>
       )}
@@ -83,7 +85,7 @@ export function PasswordField({
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-gray-700">
+      <label htmlFor={id} className={FIELD.label}>
         {label}
       </label>
       <div className="relative">
@@ -100,26 +102,26 @@ export function PasswordField({
           onKeyDown={trackCapsLock}
           onKeyUp={trackCapsLock}
           onBlur={() => setCapsLock(false)}
-          className={`${inputClass} ${Icon ? "pl-10" : "pl-3"} pr-10`}
+          className={`${inputClass} ${Icon ? "!pl-7" : ""} !pr-10`}
           {...inputProps}
         />
-        <button
-          type="button"
+        <Button
+          variant="icon-ghost"
           onClick={() => setVisible((current) => !current)}
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
-          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-gray-400 hover:cursor-pointer hover:text-gray-600"
+          className="absolute inset-y-0 right-0 w-10 justify-end"
         >
           {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
+        </Button>
       </div>
       {capsLock && (
-        <p id={capsId} className="mt-1 text-xs text-amber-600">
+        <p id={capsId} className={`${META} mt-2 text-amber-300`}>
           Caps Lock is on
         </p>
       )}
       {hint && (
-        <p id={hintId} className="mt-1 text-xs text-gray-500">
+        <p id={hintId} className={FIELD.hint}>
           {hint}
         </p>
       )}
@@ -132,7 +134,7 @@ export function AuthError({ children }) {
   if (!children) return null;
 
   return (
-    <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+    <p role="alert" className="border-l-2 border-coffee-bean-400 py-1 pl-4 text-sm text-coffee-bean-200">
       {children}
     </p>
   );
@@ -141,8 +143,8 @@ export function AuthError({ children }) {
 /** Shown instead of the form while the session loads or a redirect is pending. */
 export function AuthLoading({ label = "Loading…" }) {
   return (
-    <div className="flex flex-col items-center gap-3 py-16 text-sm text-gray-500">
-      <span className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
+    <div className={`${META} flex items-center gap-3 py-16 text-paper/55`}>
+      <span className="h-px w-10 animate-pulse bg-coffee-bean-400" />
       {label}
     </div>
   );

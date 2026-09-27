@@ -38,19 +38,30 @@ export default function RestaurantMap({ restaurants = [] }) {
       return;
     }
 
+    // On touch screens a one-finger drag should scroll the page, not pan
+    // the map: cooperative gestures move the map with two fingers only.
+    const isTouch = window.matchMedia("(pointer: coarse)").matches;
+
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "mapbox://styles/mapbox/dark-v11",
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       minZoom: MIN_ZOOM,
       maxZoom: MAX_ZOOM,
+      cooperativeGestures: isTouch,
     });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
     mapRef.current = map;
 
+    // Keep the canvas matched to its box when the layout changes (details
+    // panel opening, rotating the phone, the list loading above it).
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(mapContainerRef.current);
+
     return () => {
+      resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
     };
@@ -160,7 +171,7 @@ export default function RestaurantMap({ restaurants = [] }) {
   return (
     <div
       ref={mapContainerRef}
-      className="h-full w-full overflow-hidden rounded-[2rem]"
+      className="h-full w-full overflow-hidden"
     />
   );
 }
@@ -174,7 +185,7 @@ function createMarkerElement() {
 
   const dot = document.createElement("span");
   dot.className =
-    "pointer-events-none h-5 w-5 rounded-full border-[3px] border-white bg-rosy-copper-950 shadow-md transition";
+    "pointer-events-none h-3.5 w-3.5 rotate-45 border-2 border-ink bg-paper transition";
 
   hitTarget.appendChild(dot);
 

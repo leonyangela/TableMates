@@ -1,6 +1,7 @@
 "use client";
 
 import { useSocialStore } from "@/store/social/social.store";
+import Button from "@/components/button/button.component";
 
 /**
  * A person's name that opens their public profile. `context` (e.g.
@@ -14,12 +15,8 @@ export default function UserNameButton({ uid, name, context, className = "" }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => openProfile(uid, context)}
-      className={`truncate text-left underline-offset-2 hover:underline ${className}`}
-    >
+    <Button variant="name" onClick={() => openProfile(uid, context)} className={className}>
       {name}
-    </button>
+    </Button>
   );
 }

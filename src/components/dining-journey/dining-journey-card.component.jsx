@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import DiningStatusBadge from "./status-badge.component";
+import { META } from "@/components/ui/styles";
 import DiningJourneyDetailsModal from "./dining-journey-details-modal.component";
 import PendingRequestsList from "../community-dining/pending-requests-list.component";
 import FeedbackModal from "./feedback-modal.component";
@@ -22,6 +23,7 @@ import ConfirmAction from "../common/confirm-action.component";
 import { REPEAT_OPTIONS } from "@/lib/constants/social.constants";
 import { feedbackId } from "@/lib/constants/firestore-collections.constants";
 import {
+  combineDateAndTime,
   formatDiningDateTime,
   hasTableStarted,
 } from "@/lib/utils/dining-journey.utils";
@@ -31,6 +33,9 @@ import {
   MEMBERSHIP_STATUS,
   getVisibilityLabel,
 } from "@/lib/constants/dining-journey.constants";
+import Button from "@/components/button/button.component";
+
+const monthFormat = new Intl.DateTimeFormat("en-US", { month: "short", weekday: "short" });
 
 export default function DiningJourneyCard({
   entry,
@@ -95,101 +100,72 @@ export default function DiningJourneyCard({
     (option) => option.value === table.repeat,
   )?.label;
 
+  const date = combineDateAndTime(table.date, table.time);
+
   return (
     <>
-      <div className="flex gap-4 rounded-xl border border-[#E5E1DB] bg-white p-4">
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#F0EDE7]">
-          {table.restaurantImage ? (
-            <Image
-              src={table.restaurantImage}
-              alt={table.restaurantName ?? "Restaurant"}
-              fill
-              className="object-cover"
-              sizes="80px"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <Utensils className="h-6 w-6 text-[#9A938B]" />
-            </div>
+      <article className="grid grid-cols-[4.5rem_1fr] gap-x-5 gap-y-6 border-t border-paper/10 py-8 md:grid-cols-[7rem_1fr_9rem] md:gap-x-8">
+        {/* Date, set large */}
+        <div className="leading-none">
+          <span className="block font-display text-5xl font-semibold tracking-[-0.05em] text-coffee-bean-400 md:text-7xl">
+            {date ? date.getDate() : "--"}
+          </span>
+          {date && (
+            <span className={`${META} mt-2 block text-paper/55`}>
+              {monthFormat.format(date)}
+            </span>
           )}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => setDetailsOpen(true)}
-              className="truncate text-left text-sm font-semibold text-[#1F1D1B] hover:underline"
-            >
-              {table.restaurantName ?? "Untitled restaurant"}
-            </button>
-
-            <DiningStatusBadge status={entry.displayStatus} />
-          </div>
-
-          {dateTimeLabel && (
-            <p className="mt-1 text-sm text-[#6B6660]">{dateTimeLabel}</p>
-          )}
-
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#6B6660]">
-            <span className="inline-flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" />
-              {table.partySize ?? "\u2014"} seats
+        <div className="min-w-0">
+          <p className={`${META} flex flex-wrap gap-x-5 gap-y-1 text-paper/55`}>
+            {dateTimeLabel && <span>{dateTimeLabel}</span>}
+            <span>{roleLabel}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="h-3 w-3" />
+              {table.partySize ?? "-"} seats
             </span>
-
-            <span className="rounded-full bg-[#F5F2ED] px-2 py-0.5 font-medium text-[#514C47]">
-              {roleLabel}
-            </span>
-
             {table.seriesCount > 1 && (
-              <span className="inline-flex items-center gap-1">
-                <Repeat className="h-3.5 w-3.5" />
-                {repeatLabel ?? "Repeats"} · {table.seriesIndex} of{" "}
-                {table.seriesCount}
+              <span className="inline-flex items-center gap-1.5">
+                <Repeat className="h-3 w-3" />
+                {repeatLabel ?? "Repeats"} {table.seriesIndex} of {table.seriesCount}
               </span>
             )}
-
-            {table.visibility && (
-              <span>{getVisibilityLabel(table.visibility)}</span>
-            )}
-
+            {table.visibility && <span>{getVisibilityLabel(table.visibility)}</span>}
             {entry.seatChangeRequest?.status === MEMBERSHIP_STATUS.PENDING && (
-              <span className="rounded-full bg-accent px-2 py-0.5 font-medium text-info">
-                Seat change pending
-              </span>
+              <span className="text-coffee-bean-300">Seat change pending</span>
             )}
-          </div>
+          </p>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
+          <Button
+            variant="title"
+            onClick={() => setDetailsOpen(true)}
+            className="mt-3 text-3xl md:text-5xl"
+          >
+            {table.restaurantName ?? "Untitled restaurant"}
+          </Button>
+
+          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-4">
+            <Button
+              variant="link"
               onClick={() => setDetailsOpen(true)}
-              className="inline-flex items-center gap-1 rounded-full border border-[#1F1D1B] px-3 py-1 text-xs font-medium text-[#1F1D1B] transition-colors hover:bg-[#1F1D1B] hover:text-white"
+              Icon={ChevronRight}
+              iconPosition="right"
+              size="sm"
             >
-              View details
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+              Details
+            </Button>
 
             {canManage && (
-              <button
-                type="button"
-                onClick={() => onManage(entry.bookingId)}
-                className="inline-flex items-center gap-1 rounded-full border border-[#E5E1DB] px-3 py-1 text-xs font-medium text-[#514C47] transition-colors hover:border-[#1F1D1B] hover:text-[#1F1D1B]"
-              >
-                <Settings2 className="h-3.5 w-3.5" />
+              <Button variant="link" onClick={() => onManage(entry.bookingId)} Icon={Settings2} size="sm">
                 Manage table
-              </button>
+              </Button>
             )}
 
             {canRate && (
-              <button
-                type="button"
-                onClick={() => setFeedbackOpen(true)}
-                className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
-              >
-                <Star className="h-3.5 w-3.5" />
+              <Button size="sm" onClick={() => setFeedbackOpen(true)} Icon={Star}>
                 Rate your table
-              </button>
+              </Button>
             )}
 
             {canWithdraw && (
@@ -240,7 +216,31 @@ export default function DiningJourneyCard({
             />
           )}
         </div>
-      </div>
+
+        {/* Status and photograph */}
+        <div className="col-span-2 flex items-start justify-between gap-4 md:col-span-1 md:flex-col md:items-end">
+          <DiningStatusBadge status={entry.displayStatus} />
+          <Button
+            variant="bare"
+            onClick={() => setDetailsOpen(true)}
+            aria-hidden="true"
+            tabIndex={-1}
+            className="relative hidden aspect-[3/4] w-full overflow-hidden bg-ink-soft md:flex"
+          >
+            {table.restaurantImage ? (
+              <Image
+                src={table.restaurantImage}
+                alt=""
+                fill
+                className="object-cover transition duration-700 hover:scale-105"
+                sizes="144px"
+              />
+            ) : (
+              <Utensils className="absolute inset-0 m-auto h-5 w-5 text-paper/35" />
+            )}
+          </Button>
+        </div>
+      </article>
 
       {detailsOpen && (
         <DiningJourneyDetailsModal

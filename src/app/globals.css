@@ -1,76 +1,84 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0f0e0e;
+  --foreground: #f2efeb;
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
-  --color-primary: #c15b3e;
-  --color-secondary: #999999; /* grey olive*/
-  --color-accent: #f0e6d8; /* soft limestone */
-  --color-info: #5a2e25; /* deep rusty */
-  --color-background: #ffffff; /*white */
+  /* The accent, under the name older components use. */
+  --color-primary: var(--color-coffee-bean-400);
 
-  --color-grey-olive-50: #f9efec;
-  --color-rosy-copper-100: #f3ded8;
-  --color-rosy-copper-200: #e6bdb2;
-  --color-rosy-copper-300: #da9c8b;
-  --color-rosy-copper-400: #cd7c65;
-  --color-rosy-copper-500: #c15b3e;
-  --color-rosy-copper-600: #9a4932;
-  --color-rosy-copper-700: #743625;
-  --color-rosy-copper-800: #4d2419;
-  --color-rosy-copper-900: #27120c;
-  --color-rosy-copper-950: #1b0d09;
+  /* Editorial palette: near-black / off-white with the coffee-bean red
+     as the single accent. */
+  --color-coffee-bean-50: #ffe7e5;
+  --color-coffee-bean-100: #ffcfcc;
+  --color-coffee-bean-200: #ff9e99;
+  --color-coffee-bean-300: #ff6e66;
+  --color-coffee-bean-400: #ff3d33;
+  --color-coffee-bean-500: #ff0d00;
+  --color-coffee-bean-600: #cc0a00;
+  --color-coffee-bean-700: #990800;
+  --color-coffee-bean-800: #660500;
+  --color-coffee-bean-900: #330300;
+  --color-coffee-bean-950: #240200;
+  --color-ink: #0f0e0e;
+  --color-ink-soft: #1a1818;
+  --color-paper: #f2efeb;
 
-  --color-grey-olive-50: #F2F2F2;
-  --color-grey-olive-100: #E6E6E6;
-  --color-grey-olive-200: #CCCCCC;
-  --color-grey-olive-300: #B3B3B3;
-  --color-grey-olive-400: #999999;
-  --color-grey-olive-500: #808080;
-  --color-grey-olive-600: #666666;
-  --color-grey-olive-700: #4D4D4D;
-  --color-grey-olive-800: #333333;
-  --color-grey-olive-900: #1A1A1A;
-  --color-grey-olive-950: #121212;
-
-  /* Homepage cuisine strip — motion only, no new colours. */
-  --animate-marquee: marquee 40s linear infinite;
-
-  @keyframes marquee {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(-50%);
-    }
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Type (next/font variables set in app/layout.js). */
+  --font-display: var(--font-inter-tight), "Helvetica Neue", Arial, sans-serif;
+  --font-body: var(--font-inter), "Helvetica Neue", Arial, sans-serif;
+  --font-meta: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Open Sans", Helvetica, sans-serif;
+  font-family: var(--font-body);
 }
 
-.font-oswald {
-  font-family: var(--font-oswald), sans-serif;
+::selection {
+  background: var(--color-coffee-bean-400);
+  color: var(--color-ink);
 }
 
-.font-open-sans {
-  font-family: var(--font-sans), sans-serif;
+/* Homepage: content that eases in once it scrolls into view (see
+   components/ui/reveal.component.jsx). Static under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(2.5rem);
+    transition:
+      opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  [data-reveal="visible"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Hero headline lines rise out of their own clipped line box. */
+  .hero-line > span {
+    display: inline-block;
+    animation: hero-line-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--line-delay, 0ms);
+  }
+
+  @keyframes hero-line-in {
+    from {
+      transform: translateY(105%);
+    }
+    to {
+      transform: none;
+    }
+  }
 }

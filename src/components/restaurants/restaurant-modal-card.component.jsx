@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { ArrowUpRight, Clock3, Flame, Star, X } from "lucide-react";
+import { Clock3, Flame, X } from "lucide-react";
+
+import { DISPLAY, META } from "@/components/ui/styles";
 
 import { useRestaurantSelectionStore } from "@/store/restaurant/restaurant.store";
 import {
   formatOpeningHours,
   formatPriceRange,
 } from "@/lib/utils/formatters.utils";
+import Button from "@/components/button/button.component";
 
 export default function RestaurantPopupCard({ restaurant, onClose }) {
   const openDetails = useRestaurantSelectionStore((state) => state.openDetails);
@@ -38,7 +41,7 @@ export default function RestaurantPopupCard({ restaurant, onClose }) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-rosy-copper-950/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm"
       role="presentation"
       onClick={onClose}
     >
@@ -46,87 +49,69 @@ export default function RestaurantPopupCard({ restaurant, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="restaurant-popup-title"
-        className="w-full max-w-sm overflow-hidden rounded-[2rem] bg-white font-sans shadow-2xl"
+        className="w-full max-w-md overflow-hidden border border-paper/15 bg-ink"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="relative h-44 bg-rosy-copper-950">
+        <div className="relative aspect-[16/10] bg-ink-soft">
           {restaurant.image && (
             <Image
               src={restaurant.image}
               alt=""
               fill
-              sizes="384px"
+              sizes="448px"
+              // Only rendered once opened, already in view: no point lazy-loading.
+              loading="eager"
               className="object-cover"
             />
           )}
-          <div className="absolute inset-0 bg-linear-to-t from-rosy-copper-950/90 via-rosy-copper-950/20 to-transparent" />
-
-          <button
-            type="button"
+          <Button
+            variant="icon"
             onClick={onClose}
             aria-label="Close restaurant popup"
-            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-grey-olive-950 backdrop-blur transition hover:bg-white"
+            className="absolute right-3 top-3 bg-ink"
           >
             <X size={16} />
-          </button>
-
-          <div className="absolute inset-x-0 bottom-0 p-5 text-white">
-            <div className="flex flex-wrap gap-1.5">
-              {restaurant.trending && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold">
-                  <Flame size={12} /> Trending
-                </span>
-              )}
-              {typeof restaurant.rating === "number" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold backdrop-blur">
-                  <Star size={11} className="fill-current" />
-                  {restaurant.rating.toFixed(1)}
-                </span>
-              )}
-            </div>
-            <h2
-              id="restaurant-popup-title"
-              className="mt-2 font-oswald text-3xl font-bold uppercase leading-none"
-            >
-              {restaurant.name ?? "Untitled restaurant"}
-            </h2>
-          </div>
+          </Button>
         </div>
 
-        <div className="p-5">
-          {metaParts.length > 0 && (
-            <p className="text-sm font-medium text-grey-olive-800">
-              {metaParts.join(" \u00b7 ")}
-            </p>
-          )}
+        <div className="p-6">
+          <p className={`${META} flex flex-wrap gap-x-4 gap-y-1 text-paper/55`}>
+            {metaParts.map((part) => (
+              <span key={part}>{part}</span>
+            ))}
+            {typeof restaurant.rating === "number" && (
+              <span>{restaurant.rating.toFixed(1)} / 5</span>
+            )}
+            {restaurant.trending && (
+              <span className="inline-flex items-center gap-1 text-coffee-bean-300">
+                <Flame size={11} aria-hidden="true" /> Trending
+              </span>
+            )}
+          </p>
+
+          <h2
+            id="restaurant-popup-title"
+            className={`${DISPLAY.item} mt-3 !text-4xl`}
+          >
+            {restaurant.name ?? "Untitled restaurant"}
+          </h2>
 
           {openingHoursLabel && (
-            <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-grey-olive-600">
-              <Clock3 size={14} className="text-primary" />
-              Open{" "}
-              <span className="font-medium text-grey-olive-950">
-                {openingHoursLabel}
-              </span>
+            <p className={`${META} mt-4 inline-flex items-center gap-2 text-paper/55`}>
+              <Clock3 size={12} />
+              Open {openingHoursLabel}
             </p>
           )}
 
           {restaurant.short_description && (
-            <p className="mt-3 line-clamp-2 text-sm leading-6 text-grey-olive-600">
+            <p className="mt-4 line-clamp-3 text-sm leading-6 text-paper/70">
               {restaurant.short_description}
             </p>
           )}
 
-          <button
-            type="button"
-            onClick={handleViewDetails}
-            className="group mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-semibold text-white transition hover:bg-rosy-copper-600"
-          >
+          <Button arrow fullWidth onClick={handleViewDetails} className="mt-6">
             View full details
-            <ArrowUpRight
-              size={16}
-              className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-            />
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

@@ -90,7 +90,15 @@ export function useRestaurants(filters = {}) {
         filters,
         cursor: cursorRef.current,
       });
-      setRestaurants((previous) => [...previous, ...result.restaurants]);
+      // Skip any restaurant already listed, so a result that shows up on
+      // two pages can't render twice (and collide on its key).
+      setRestaurants((previous) => {
+        const seen = new Set(previous.map((restaurant) => restaurant.id));
+        return [
+          ...previous,
+          ...result.restaurants.filter((restaurant) => !seen.has(restaurant.id)),
+        ];
+      });
       setHasMore(result.hasMore);
       cursorRef.current = result.nextCursor;
     } catch (fetchError) {

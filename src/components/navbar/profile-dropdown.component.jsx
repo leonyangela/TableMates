@@ -9,6 +9,7 @@ import { PROFILE_MENU_ITEMS } from "@/lib/constants/navbar.constants";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useClickOutside } from "@/hooks/useClickOutside";
+import Button from "@/components/button/button.component";
 
 export default function ProfileDropdown({ onNavigate }) {
   const [open, setOpen] = useState(false);
@@ -32,29 +33,29 @@ export default function ProfileDropdown({ onNavigate }) {
 
   return (
     <div ref={dropdownRef} className="relative">
-      <button
-        type="button"
+      <Button
+        variant="bare"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex items-center gap-1.5"
+        className="gap-1.5"
       >
         <Avatar
           name={user?.displayName || user?.email}
           photoURL={user?.photoURL}
           size="sm"
-          className="h-8 w-8 ring-2 ring-white/20"
+          className="h-8 w-8 ring-1 ring-paper/25"
         />
         <ChevronDown
           size={16}
-          className={`text-accent/70 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`text-paper/70 transition-transform ${open ? "rotate-180" : ""}`}
         />
-      </button>
+      </Button>
 
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-3 w-52 overflow-hidden rounded-2xl border border-grey-olive-100 bg-white py-1.5 shadow-xl"
+          className="absolute right-0 z-50 mt-4 w-60 overflow-hidden border border-paper/15 bg-ink py-2"
         >
           {PROFILE_MENU_ITEMS.map((item) => (
             <NavLink
@@ -66,14 +67,15 @@ export default function ProfileDropdown({ onNavigate }) {
             />
           ))}
 
-          <button
-            type="button"
+          <Button
+            variant="text"
             onClick={handleLogout}
             role="menuitem"
-            className="w-full border-t border-grey-olive-100 px-4 py-2 text-left text-sm text-red-600 hover:cursor-pointer hover:bg-grey-olive-50"
+            fullWidth
+            className="mt-2 justify-center border-t border-paper/10 px-5 pb-1 pt-4"
           >
-            Logout
-          </button>
+            Log out
+          </Button>
         </div>
       )}
     </div>

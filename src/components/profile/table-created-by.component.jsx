@@ -33,18 +33,17 @@ export default function TableCreatedBy({
 
   return (
     <div>
-      <p className="flex flex-wrap items-center gap-x-1 text-sm text-[#514C47]">
-        <span className="text-[#6B6660]">Created by</span>
+      <p className="flex flex-wrap items-baseline gap-x-2 text-paper/75">
         <UserNameButton
           uid={hostId}
           name={hostName || "Host"}
           context={{ bookingId }}
-          className="font-medium text-[#1F1D1B]"
+          className="font-display text-xl tracking-[-0.02em] text-paper"
         />
-        {isYou && <span className="text-xs text-[#9A938B]">(you)</span>}
+        {isYou && <span className="font-meta text-[11px] uppercase tracking-[0.14em] text-coffee-bean-300">You</span>}
       </p>
       {created && (
-        <p className="mt-0.5 flex items-center gap-1 text-xs text-[#6B6660]">
+        <p className="mt-2 flex items-center gap-2 font-meta text-[11px] uppercase tracking-[0.14em] text-paper/50">
           <CalendarPlus className="h-3.5 w-3.5" />
           Created {createdFormat.format(created)}
         </p>

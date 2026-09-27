@@ -74,7 +74,7 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="space-y-8">
       <AuthField
         label="Email"
         type="email"
@@ -100,7 +100,7 @@ function LoginForm() {
           onChange={handleChange}
           invalid={invalidField === "password"}
         />
-        <div className="mt-1.5 text-right">
+        <div className="mt-3 text-right">
           <Link
             href={`/forgot-password${
               form.email.trim()
@@ -119,16 +119,16 @@ function LoginForm() {
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="w-full h-11 font-semibold"
+        className="w-full"
       >
         {isSubmitting ? "Logging in…" : "Log in"}
       </Button>
 
-      <p className="pt-3 text-center text-sm text-gray-500">
+      <p className="border-t border-paper/10 pt-6 text-sm text-paper/60">
         Don&apos;t have an account?{" "}
         <Link
           href={`/sign-up${redirectQuery}`}
-          className="font-semibold text-primary hover:text-rosy-copper-600"
+          className="font-semibold text-primary hover:text-coffee-bean-300"
         >
           Sign up
         </Link>

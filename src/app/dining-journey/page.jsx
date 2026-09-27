@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import WrapperComponent from "@/components/wrapper/wrapper.component";
-import Button from "@/components/button/button.component";
+import PageHeader from "@/components/ui/page-header.component";
+import FilterTabs from "@/components/ui/filter-tabs.component";
+import ErrorToast from "@/components/ui/error-toast.component";
+import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states.component";
+import { EDITORIAL_IMAGES } from "@/lib/constants/editorial-images";
 import DiningJourneyCard from "@/components/dining-journey/dining-journey-card.component";
 import BookingFormModal from "@/components/booking/booking-form-modal.component";
 
@@ -19,15 +22,16 @@ import {
   DINING_STATUS_META,
   DINING_STATUS_ORDER,
 } from "@/lib/constants/dining-journey.constants";
+import Button from "@/components/button/button.component";
 
 function DiningJourneyCardSkeleton() {
   return (
-    <div className="flex gap-4 rounded-xl border border-[#E5E1DB] bg-white p-4">
-      <div className="h-20 w-20 shrink-0 animate-pulse rounded-lg bg-[#F0EDE7]" />
-      <div className="flex-1 space-y-2 py-1">
-        <div className="h-4 w-2/3 animate-pulse rounded bg-[#F0EDE7]" />
-        <div className="h-3 w-1/2 animate-pulse rounded bg-[#F0EDE7]" />
-        <div className="h-3 w-1/3 animate-pulse rounded bg-[#F0EDE7]" />
+    <div className="grid grid-cols-[5rem_1fr] gap-6 border-t border-paper/10 py-8">
+      <Skeleton className="h-16 w-16" />
+      <div className="space-y-3">
+        <Skeleton className="h-3 w-1/4" />
+        <Skeleton className="h-8 w-2/3" />
+        <Skeleton className="h-3 w-1/3" />
       </div>
     </div>
   );
@@ -36,7 +40,6 @@ function DiningJourneyCardSkeleton() {
 const JOURNEY_SKELETONS = Array.from({ length: 4 }, (_, index) => index);
 
 export default function DiningJourneyPage() {
-  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
   const {
@@ -84,132 +87,97 @@ export default function DiningJourneyPage() {
     })),
   ];
 
+  const header = (
+    <PageHeader
+      meta={["Dining journey", "Hosted and joined"]}
+      title="Your table"
+      muted="plan."
+      intro="Every table you've hosted or joined, from the ones coming up to the ones you're still talking about."
+      image={EDITORIAL_IMAGES.lamps}
+    />
+  );
+
   if (!authLoading && !user) {
     return (
-      <WrapperComponent paddingX="sm" className="pt-4">
-        <div className="rounded-xl border border-[#E5E1DB] bg-white p-8 text-center">
-          <h1 className="text-xl font-semibold text-[#1F1D1B]">
-            Log in to see your dining journey
-          </h1>
-          <p className="mt-2 text-sm text-[#6B6660]">
-            Tables you&apos;ve hosted or joined will show up here once
-            you&apos;re logged in.
-          </p>
-          <Button onClick={() => router.push("/login?redirect=/dining-journey")} className="mt-4">
-            Log in
-          </Button>
+      <WrapperComponent>
+        {header}
+        <div className="px-5 pb-16 md:px-10">
+          <EmptyState
+            label="Members only"
+            title="Log in to see your dining journey."
+            text="Tables you've hosted or joined show up here once you're logged in."
+            action={<Button arrow href="/login?redirect=/dining-journey">Log in</Button>}
+          />
         </div>
       </WrapperComponent>
     );
   }
 
   return (
-    <WrapperComponent paddingX="sm" className="pt-4 pb-12">
-      <h1 className="text-2xl font-semibold text-[#1F1D1B]">Dining journey</h1>
-      <p className="mt-1 text-sm text-[#6B6660]">
-        Every table you&apos;ve hosted or joined, in one place.
-      </p>
+    <WrapperComponent>
+      {header}
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {tabs.map((tab) => {
-          const isActive = statusFilter === tab.value;
-          return (
-            <button
-              key={tab.label}
-              type="button"
-              onClick={() => setStatusFilter(tab.value)}
-              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? "border-primary bg-grey-olive-300 text-primary"
-                  : "border-grey-olive-200 text-black hover:border-info"
-              }`}
-            >
-              {tab.label}
-              {tab.count > 0 && (
-                <span className="ml-1.5 text-xs opacity-70">{tab.count}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <div className="px-5 pb-20 md:px-10">
+        <FilterTabs
+          label="Filter by status"
+          tabs={tabs}
+          value={statusFilter}
+          onChange={setStatusFilter}
+          className="border-t border-paper/10 pt-6"
+        />
 
-      <div className="mt-5 space-y-3">
-        {error ? (
-          <div className="rounded-xl border border-[#E5E1DB] bg-white p-4">
-            <p className="text-sm font-medium text-[#1F1D1B]">
-              Couldn&apos;t load your dining journey
-            </p>
-            <p className="mt-1 text-sm text-[#6B6660]">
-              {error.message ?? "Something went wrong."}
-            </p>
-            <button
-              type="button"
-              onClick={refetch}
-              className="mt-3 rounded-full border border-[#1F1D1B] px-3 py-1.5 text-sm font-medium text-[#1F1D1B] transition-colors hover:bg-[#1F1D1B] hover:text-white"
-            >
-              Try again
-            </button>
-          </div>
-        ) : loading || authLoading ? (
-          JOURNEY_SKELETONS.map((index) => (
-            <DiningJourneyCardSkeleton key={index} />
-          ))
-        ) : entries.length === 0 ? (
-          <div className="rounded-xl border border-[#E5E1DB] bg-white p-8 text-center">
-            <h2 className="font-semibold text-[#1F1D1B]">
-              {statusFilter
-                ? `No tables ${DINING_STATUS_META[statusFilter].label.toLowerCase()}`
-                : "No tables yet"}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[#6B6660]">
-              {statusFilter
-                ? "Switch tabs to see the rest of your dining journey."
-                : "Host an open table or join one to start your dining journey."}
-            </p>
-            {!statusFilter && (
-              <Button
-                onClick={() => router.push("/restaurants")}
-                className="mt-4"
-              >
-                Find a table
-              </Button>
-            )}
-          </div>
-        ) : (
-          entries.map((entry) => (
-            <DiningJourneyCard
-              key={entry.id}
-              entry={entry}
-              currentUserId={user?.uid}
-              pendingActionId={pendingActionId}
-              actionErrors={actionErrors}
-              onRespond={respondToRequest}
-              onRemoveGuest={removeGuest}
-              onManage={handleManage}
-              onChangeSeats={changeSeats}
-              onUpdateRequest={updateRequest}
-              onLeaveTable={leaveTable}
-              onCancelRequest={cancelRequest}
-              onCancelTable={cancelTable}
-              feedbackIds={feedbackIds}
-              onSubmitFeedback={submitFeedback}
+        <div className="mt-10">
+          {error ? (
+            <ErrorState
+              title="Couldn't load your dining journey."
+              text={error.message}
+              onRetry={refetch}
             />
-          ))
-        )}
+          ) : loading || authLoading ? (
+            JOURNEY_SKELETONS.map((index) => (
+              <DiningJourneyCardSkeleton key={index} />
+            ))
+          ) : entries.length === 0 ? (
+            <EmptyState
+              title={
+                statusFilter
+                  ? `No tables ${DINING_STATUS_META[statusFilter].label.toLowerCase()}.`
+                  : "No tables yet."
+              }
+              text={
+                statusFilter
+                  ? "Switch tabs to see the rest of your dining journey."
+                  : "Host an open table or join one to start your dining journey."
+              }
+              action={
+                !statusFilter && <Button arrow href="/restaurants">Find a table</Button>
+              }
+            />
+          ) : (
+            entries.map((entry) => (
+              <DiningJourneyCard
+                key={entry.id}
+                entry={entry}
+                currentUserId={user?.uid}
+                pendingActionId={pendingActionId}
+                actionErrors={actionErrors}
+                onRespond={respondToRequest}
+                onRemoveGuest={removeGuest}
+                onManage={handleManage}
+                onChangeSeats={changeSeats}
+                onUpdateRequest={updateRequest}
+                onLeaveTable={leaveTable}
+                onCancelRequest={cancelRequest}
+                onCancelTable={cancelTable}
+                feedbackIds={feedbackIds}
+                onSubmitFeedback={submitFeedback}
+              />
+            ))
+          )}
+        </div>
       </div>
 
-      {editorError && (
-        <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-start justify-between gap-3 rounded-xl border border-[#E5E1DB] bg-white p-4 shadow-lg">
-          <p className="text-sm text-red-600">{editorError}</p>
-          <button
-            type="button"
-            onClick={clearEditorError}
-            className="text-sm font-medium text-[#514C47] hover:underline"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+      <ErrorToast message={editorError} onDismiss={clearEditorError} />
 
       {bookingRestaurant && editingBooking && (
         <BookingFormModal

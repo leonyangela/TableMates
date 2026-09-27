@@ -5,7 +5,7 @@
 
 import moment from "moment";
 
-/** { min: 120, max: 180 } -> "$120–$180". Open-ended on either side renders as "$120+" / "Up to $180". */
+/** { min: 120, max: 180 } -> "$120-$180". Open-ended on either side renders as "$120+" / "Up to $180". */
 export function formatPriceRange(priceRange) {
   if (!priceRange) {
     return null;
@@ -14,7 +14,7 @@ export function formatPriceRange(priceRange) {
   const { min, max } = priceRange;
 
   if (min == null && max == null) return null;
-  if (min != null && max != null) return `$${min}\u2013$${max}`;
+  if (min != null && max != null) return `$${min}-$${max}`;
   if (min != null) return `$${min}+`;
   return `Up to $${max}`;
 }
@@ -28,7 +28,7 @@ export function formatTimeLabel(time24) {
 }
 
 /**
- * ["17:00", "18:00", ..., "23:00"] -> "5:00 PM – 11:00 PM".
+ * ["17:00", "18:00", ..., "23:00"] -> "5:00 PM - 11:00 PM".
  * time_opening is a list of bookable slots, not a single opening time —
  * this renders it as a range for display (the booking form itself still
  * uses the full slot list).
@@ -43,7 +43,7 @@ export function formatOpeningHours(timeSlots) {
 
   return first === last
     ? formatTimeLabel(first)
-    : `${formatTimeLabel(first)} \u2013 ${formatTimeLabel(last)}`;
+    : `${formatTimeLabel(first)} - ${formatTimeLabel(last)}`;
 }
 
 export function getLocalDateString(date = new Date()) {

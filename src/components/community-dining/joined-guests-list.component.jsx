@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Users } from "lucide-react";
+import { META } from "@/components/ui/styles";
 
 import Button from "../button/button.component";
 import UserNameButton from "../profile/user-name-button.component";
@@ -29,12 +30,12 @@ export default function JoinedGuestsList({
   }
 
   return (
-    <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-      <h3 className="text-sm font-semibold text-[#1F1D1B]">
-        Guests joined ({guests.length})
+    <section className="mt-8">
+      <h3 className={`${META} text-paper/55`}>
+        Guests joined <span className="ml-2 text-paper/35">{String(guests.length).padStart(2, "0")}</span>
       </h3>
 
-      <ul className="mt-2 space-y-1.5">
+      <ul className="mt-3">
         {guests.map((guest) => {
           const actionId = removeGuestActionId(bookingId, guest.uid);
           const isBusy = pendingActionId === actionId;
@@ -43,9 +44,9 @@ export default function JoinedGuestsList({
 
           return (
             <li key={guest.uid}>
-              <div className="flex min-h-8 items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2 text-sm text-[#514C47]">
-                  <Users className="h-3.5 w-3.5 shrink-0 text-[#9A938B]" />
+              <div className="flex min-h-12 items-center justify-between gap-3 border-t border-paper/10 py-2">
+                <div className="flex min-w-0 items-center gap-3 text-paper/85">
+                  <Users className="h-3.5 w-3.5 shrink-0 text-paper/45" />
                   <span className="flex min-w-0 items-center gap-1">
                     <UserNameButton
                       uid={guest.uid}
@@ -53,14 +54,14 @@ export default function JoinedGuestsList({
                       context={{ bookingId }}
                     />
                     {guest.seats ? (
-                      <span className="shrink-0">
-                        {` · ${guest.seats} seat${guest.seats !== 1 ? "s" : ""}`}
+                      <span className={`${META} ml-2 shrink-0 text-paper/50`}>
+                        {`${guest.seats} seat${guest.seats !== 1 ? "s" : ""}`}
                       </span>
                     ) : null}
                   </span>
                   {guest.uid === currentUserId && (
-                    <span className="shrink-0 text-xs text-[#9A938B]">
-                      (you)
+                    <span className={`${META} shrink-0 text-coffee-bean-300`}>
+                      You
                     </span>
                   )}
                 </div>
@@ -100,7 +101,7 @@ export default function JoinedGuestsList({
               </div>
 
               {guestError && (
-                <p className="mt-1 text-xs text-red-600">{guestError}</p>
+                <p role="alert" className="mt-1 text-sm text-coffee-bean-300">{guestError}</p>
               )}
             </li>
           );

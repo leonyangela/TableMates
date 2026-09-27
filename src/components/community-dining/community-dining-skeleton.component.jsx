@@ -5,7 +5,7 @@ export default function CommunityDiningSkeleton() {
         (_, index) => (
           <div
             key={index}
-            className="h-56 animate-pulse rounded-2xl bg-grey-olive-100"
+            className="h-56 animate-pulse bg-paper/5"
           />
         )
       )}

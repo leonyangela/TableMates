@@ -56,24 +56,20 @@ function ForgotPasswordForm() {
         title="Check your email"
         subtitle="Follow the link we sent to choose a new password."
       >
-        <div className="space-y-5 text-center">
-          <MailCheck className="mx-auto h-10 w-10 text-primary" />
-          <p className="text-sm text-gray-600">
+        <div className="space-y-6">
+          <MailCheck className="h-8 w-8 text-coffee-bean-400" strokeWidth={1.5} />
+          <p className="text-sm text-paper/65">
             If an account exists for <strong>{sentTo}</strong>, we&apos;ve sent
-            a link to reset your password. It can take a minute — check your
+            a link to reset your password. It can take a minute, so check your
             spam folder too.
           </p>
-          <button
-            type="button"
-            onClick={() => setSentTo(null)}
-            className="text-sm font-medium text-primary hover:underline hover:cursor-pointer"
-          >
+          <Button variant="link" onClick={() => setSentTo(null)}>
             Use a different email
-          </button>
-          <p className="pt-3 text-sm text-gray-500">
+          </Button>
+          <p className="pt-3 text-sm text-paper/60">
             <Link
               href="/login"
-              className="font-semibold text-primary hover:text-rosy-copper-600"
+              className="font-semibold text-primary hover:text-coffee-bean-300"
             >
               Back to log in
             </Link>
@@ -88,7 +84,7 @@ function ForgotPasswordForm() {
       title="Reset your password"
       subtitle="Enter your account's email and we'll send you a reset link."
     >
-      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="space-y-8">
         <AuthField
           label="Email"
           type="email"
@@ -111,16 +107,16 @@ function ForgotPasswordForm() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full h-11 font-semibold"
+          className="w-full"
         >
           {isSubmitting ? "Sending…" : "Send reset link"}
         </Button>
 
-        <p className="pt-3 text-center text-sm text-gray-500">
+        <p className="border-t border-paper/10 pt-6 text-sm text-paper/60">
           Remembered it?{" "}
           <Link
             href="/login"
-            className="font-semibold text-primary hover:text-rosy-copper-600"
+            className="font-semibold text-primary hover:text-coffee-bean-300"
           >
             Back to log in
           </Link>

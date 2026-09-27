@@ -1,6 +1,7 @@
 "use client";
 
 import Button from "../button/button.component";
+import { META } from "@/components/ui/styles";
 import UserNameButton from "../profile/user-name-button.component";
 import {
   JOIN_REQUEST_TYPE,
@@ -25,8 +26,8 @@ export default function PendingRequestsList({
   }
 
   return (
-    <div className="mt-3 space-y-2 border-t border-[#E5E1DB] pt-3">
-      <p className="text-xs font-medium text-[#6B6660]">
+    <div className="mt-6">
+      <p className={`${META} text-coffee-bean-300`}>
         {requests.length} pending request{requests.length !== 1 ? "s" : ""}
       </p>
 
@@ -37,23 +38,23 @@ export default function PendingRequestsList({
           getJoinRequestType(request) === JOIN_REQUEST_TYPE.SEAT_CHANGE;
 
         return (
-          <div key={request.id} className="rounded-lg bg-[#F8F6F2] px-3 py-2">
+          <div key={request.id} className="mt-3 border-t border-paper/10 pt-4">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <UserNameButton
                   uid={request.guestId}
                   name={request.guestName}
                   context={{ bookingId: request.bookingId }}
-                  className="block max-w-full text-sm font-medium text-[#1F1D1B]"
+                  className="block max-w-full font-display text-xl tracking-[-0.02em] text-paper"
                 />
-                <p className="text-xs text-[#6B6660]">
+                <p className={`${META} mt-1 text-paper/55`}>
                   {isSeatChange
                     ? `Wants to change from ${seatLabel(request.currentSeats)} to ${seatLabel(request.seats)}`
                     : seatLabel(request.seats)}
                 </p>
               </div>
 
-              <div className="flex shrink-0 gap-1.5">
+              <div className="flex shrink-0 gap-2">
                 <Button
                   size="sm"
                   variant="secondary"
@@ -73,13 +74,13 @@ export default function PendingRequestsList({
             </div>
 
             {request.message && (
-              <p className="mt-1.5 whitespace-pre-line break-words text-sm text-[#514C47]">
+              <p className="mt-3 whitespace-pre-line break-words text-sm italic text-paper/70">
                 &ldquo;{request.message}&rdquo;
               </p>
             )}
 
             {requestError && (
-              <p className="mt-1.5 text-xs text-red-600">{requestError}</p>
+              <p role="alert" className="mt-2 text-sm text-coffee-bean-300">{requestError}</p>
             )}
           </div>
         );

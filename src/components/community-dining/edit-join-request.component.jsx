@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Pencil } from "lucide-react";
+import { FIELD, META } from "@/components/ui/styles";
 
 import SeatStepper from "../cards/seat-stepper.component";
 import Button from "../button/button.component";
@@ -49,39 +50,34 @@ export default function EditJoinRequest({
 
   if (!isEditing) {
     return (
-      <div className="mt-3 rounded-lg bg-[#F8F6F2] px-3 py-2">
+      <div className="mt-3 bg-paper/5 px-3 py-2">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 text-sm text-[#514C47]">
+          <div className="min-w-0 text-sm text-paper/75">
             <p>
               You asked for{" "}
-              <span className="font-medium text-[#1F1D1B]">
+              <span className="font-medium text-paper">
                 {seatLabel(request.seats ?? 1)}
               </span>
             </p>
             {savedMessage && (
-              <p className="mt-1 whitespace-pre-line break-words text-[#6B6660]">
+              <p className="mt-1 whitespace-pre-line break-words text-paper/60">
                 &ldquo;{savedMessage}&rdquo;
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={startEditing}
-            className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-[#514C47] hover:text-[#1F1D1B] hover:underline"
-          >
-            <Pencil className="h-3.5 w-3.5" />
+          <Button variant="link" onClick={startEditing} Icon={Pencil} size="sm">
             Edit request
-          </button>
+          </Button>
         </div>
-        {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+        {error && <p role="alert" className="mt-2 text-sm text-coffee-bean-300">{error}</p>}
       </div>
     );
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-[#E5E1DB] px-3 py-3">
+    <div className="mt-4 border-l-2 border-coffee-bean-400 py-1 pl-5">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-[#514C47]">Seats</span>
+        <span className={`${META} text-paper/60`}>Seats</span>
         <SeatStepper
           value={seats}
           max={Math.max(seatsAvailable ?? 1, 1)}
@@ -92,7 +88,7 @@ export default function EditJoinRequest({
 
       <label
         htmlFor={`edit-request-${request.id}`}
-        className="mt-3 block text-xs text-[#6B6660]"
+        className={`${FIELD.label} mt-6`}
       >
         Message to the host (optional)
       </label>
@@ -103,15 +99,15 @@ export default function EditJoinRequest({
         value={message}
         onChange={(event) => setMessage(event.target.value)}
         disabled={isPending}
-        className="mt-1 w-full resize-none rounded-lg border border-[#E5E1DB] px-3 py-2 text-sm outline-none focus:border-[#1F1D1B]"
+        className={`${FIELD.input} h-auto resize-none py-3`}
       />
-      <p className="text-right text-xs text-[#9A938B]">
+      <p className={`${FIELD.hint} text-right`}>
         {message.length}/{JOIN_REQUEST_MESSAGE_MAX_LENGTH}
       </p>
 
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-coffee-bean-300">{error}</p>}
 
-      <div className="mt-2 flex gap-2">
+      <div className="mt-5 flex gap-3">
         <Button
           size="sm"
           variant="try-again"
@@ -130,7 +126,7 @@ export default function EditJoinRequest({
           {isPending ? "Saving…" : hasChanges ? "Save changes" : "No changes"}
         </Button>
       </div>
-      <p className="mt-1.5 text-xs text-[#9A938B]">
+      <p className={FIELD.hint}>
         You can edit this until the host responds.
       </p>
     </div>

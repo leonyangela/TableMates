@@ -15,42 +15,38 @@ import {
   DINING_STATUS_META,
 } from "@/lib/constants/dining-journey.constants";
 
-// An icon per status so meaning doesn't ride on color alone. Colors pull
-// only from the provided token set — no new hues introduced:
-//  - in_progress: brand primary, since this is the "live/upcoming" state
-//  - awaiting_confirmation: the warm accent + info pairing (waiting, not done)
-//  - completed / rejected: both settle into the neutral grey-olive scale,
-//    distinguished from each other by icon + label rather than hue, since
-//    neither is a "brand" moment.
+// An icon per status so meaning doesn't ride on color alone. Upcoming
+// and live states use the accent; waiting is full-strength paper; done,
+// rejected and cancelled settle back into dimmed paper.
 const STATUS_STYLES = {
   [DINING_STATUS.COMING_SOON]: {
     icon: CalendarClock,
-    className: "bg-primary/10 text-primary",
+    className: "text-coffee-bean-300",
   },
   // Happening now — the one solid brand badge, so it stands out.
   [DINING_STATUS.IN_PROGRESS]: {
     icon: UtensilsCrossed,
-    className: "bg-primary text-white",
+    className: "text-coffee-bean-400",
   },
   [DINING_STATUS.AWAITING_CONFIRMATION]: {
     icon: Clock3,
-    className: "bg-accent text-info",
+    className: "text-paper/80",
   },
   [DINING_STATUS.COMPLETED]: {
     icon: CheckCircle2,
-    className: "bg-grey-olive-100 text-grey-olive-700",
+    className: "text-paper/80",
   },
   [DINING_STATUS.REJECTED]: {
     icon: XCircle,
-    className: "bg-grey-olive-100 text-grey-olive-500",
+    className: "text-paper/50",
   },
   [DINING_STATUS.CANCELLED]: {
     icon: CircleSlash,
-    className: "bg-grey-olive-100 text-grey-olive-500",
+    className: "text-paper/50",
   },
   [DINING_STATUS.EXPIRED]: {
     icon: Hourglass,
-    className: "bg-grey-olive-100 text-grey-olive-500",
+    className: "text-paper/50",
   },
 };
 
@@ -67,9 +63,9 @@ export default function DiningStatusBadge({ status, className = "" }) {
   return (
     <span
       title={meta.description}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${config.className} ${className}`}
+      className={`inline-flex shrink-0 items-center gap-2 font-meta text-[11px] uppercase tracking-[0.14em] ${config.className} ${className}`}
     >
-      <Icon className="h-3.5 w-3.5" />
+      <Icon className="h-3 w-3" />
       {meta.label}
     </span>
   );

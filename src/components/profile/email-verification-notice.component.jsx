@@ -6,6 +6,7 @@ import { BadgeCheck, MailWarning } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { resendVerificationEmail } from "@/lib/firebase/auth.service";
 import { getAuthErrorMessage } from "@/lib/firebase/auth-error-messages";
+import Button from "@/components/button/button.component";
 
 /**
  * Whether the signed-in user's email is verified, with a way to resend
@@ -22,7 +23,7 @@ export default function EmailVerificationNotice() {
 
   if (user.emailVerified) {
     return (
-      <p className="mt-1 inline-flex items-center gap-1 text-xs text-green-700">
+      <p className="inline-flex items-center gap-1.5 font-meta text-[11px] uppercase tracking-[0.14em] text-paper/55">
         <BadgeCheck size={14} /> Email verified
       </p>
     );
@@ -41,29 +42,24 @@ export default function EmailVerificationNotice() {
   };
 
   return (
-    <div className="mt-1 text-xs">
-      <p className="inline-flex items-center gap-1 text-amber-700">
+    <div className="font-meta text-[11px] uppercase tracking-[0.12em]">
+      <p className="inline-flex items-center gap-1.5 text-coffee-bean-300">
         <MailWarning size={14} /> Email not verified
         {status !== "sent" && (
           <>
             {" · "}
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={status === "sending"}
-              className="font-medium text-primary hover:underline disabled:opacity-50"
-            >
+            <Button variant="link" onClick={handleResend} disabled={status === "sending"}>
               {status === "sending" ? "Sending…" : "Resend verification email"}
-            </button>
+            </Button>
           </>
         )}
       </p>
       {status === "sent" && (
-        <p className="mt-0.5 text-gray-500">
-          Sent — check your inbox, then reload this page.
+        <p className="mt-1 normal-case tracking-normal font-body text-xs text-paper/60">
+          Sent. Check your inbox, then reload this page.
         </p>
       )}
-      {error && <p className="mt-0.5 text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-coffee-bean-300">{error}</p>}
     </div>
   );
 }

@@ -1,13 +1,17 @@
 import Link from "next/link";
-import React from "react";
 
+/**
+ * Wordmark: TableMates set in the display face, with the accent full
+ * stop used across the site's headlines.
+ */
 const Logo = ({ className = "" }) => {
   return (
     <Link
       href="/"
-      className={`font-oswald text-3xl font-bold uppercase tracking-tight ${className}`}
+      aria-label="TableMates home"
+      className={`font-display text-2xl font-semibold tracking-[-0.05em] ${className}`}
     >
-      Table<span className="text-primary">Mates</span>
+      TableMates<span className="text-coffee-bean-400">.</span>
     </Link>
   );
 };

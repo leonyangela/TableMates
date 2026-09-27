@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Calendar, Utensils, X } from "lucide-react";
+import { Utensils } from "lucide-react";
+import ModalShell from "@/components/ui/modal-shell.component";
+import StatRow from "@/components/ui/stat-row.component";
+import DetailBlock from "@/components/ui/detail-block.component";
 
 import DiningStatusBadge from "./status-badge.component";
 import PendingRequestsList from "../community-dining/pending-requests-list.component";
@@ -134,109 +137,69 @@ export default function DiningJourneyDetailsModal({
 
   const backdrop = useBackdropClose(onClose);
 
+  const meta = [
+    dateTimeLabel,
+    isHost ? "You're hosting" : "You joined",
+    visibilityLabel,
+  ].filter(Boolean);
+
   return (
-    <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      {...backdrop}
-    >
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
-        <div className="relative aspect-video w-full overflow-hidden bg-[#F0EDE7]">
+    <ModalShell
+      label={meta.join("  /  ")}
+      title={table.restaurantName ?? "Untitled restaurant"}
+      onClose={onClose}
+      backdropProps={backdrop}
+      media={
+        <div className="relative aspect-[16/8] w-full overflow-hidden bg-ink-soft">
           {table.restaurantImage ? (
             <Image
               src={table.restaurantImage}
-              alt={table.restaurantName ?? "Restaurant"}
+              alt=""
               fill
               className="object-cover"
-              sizes="420px"
+              sizes="512px"
             />
           ) : (
-            <div className="flex h-full items-center justify-center">
-              <Utensils className="h-10 w-10 text-[#9A938B]" />
-            </div>
+            <Utensils className="absolute inset-0 m-auto h-8 w-8 text-paper/35" />
           )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow-sm backdrop-blur-sm hover:bg-white"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
-
-        <div className="p-5">
-          <div className="flex items-start justify-between gap-2">
-            <h2 className="text-xl font-semibold text-[#1F1D1B]">
-              {table.restaurantName ?? "Untitled restaurant"}
-            </h2>
-            <DiningStatusBadge status={entry.displayStatus} />
-          </div>
-
-          {dateTimeLabel && (
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-[#6B6660]">
-              <Calendar className="h-4 w-4" />
-              {dateTimeLabel}
-            </p>
-          )}
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#6B6660]">
-            <span className="rounded-full bg-[#F5F2ED] px-2 py-0.5 font-medium text-[#514C47]">
-              {isHost ? "You're hosting" : "You joined"}
-            </span>
-            {visibilityLabel && <span>{visibilityLabel}</span>}
-          </div>
+      }
+    >
+          <DiningStatusBadge status={entry.displayStatus} />
 
           {loading ? (
-            <p className="mt-5 text-sm text-[#6B6660]">Loading details…</p>
+            <p className="mt-6 font-meta text-[11px] uppercase tracking-[0.14em] text-paper/55">Loading details…</p>
           ) : loadError ? (
-            <p className="mt-5 text-sm text-red-600">{loadError}</p>
+            <p role="alert" className="mt-6 text-sm text-coffee-bean-300">{loadError}</p>
           ) : booking ? (
             <>
               {booking.tableDescription && (
-                <p className="mt-4 text-sm leading-6 text-[#514C47]">
+                <p className="mt-6 text-sm leading-6 text-paper/75">
                   {booking.tableDescription}
                 </p>
               )}
 
-              <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-                <h3 className="text-sm font-semibold text-[#1F1D1B]">Seats</h3>
-                <dl className="mt-2 grid grid-cols-3 gap-2 text-center text-sm">
-                  <div className="rounded-lg bg-[#F8F6F2] px-2 py-2.5">
-                    <dt className="text-xs text-[#6B6660]">Total</dt>
-                    <dd className="font-semibold text-[#1F1D1B]">
-                      {booking.totalSeats ?? "\u2014"}
-                    </dd>
-                  </div>
-                  <div className="rounded-lg bg-[#F8F6F2] px-2 py-2.5">
-                    <dt className="text-xs text-[#6B6660]">Host&apos;s party</dt>
-                    <dd className="font-semibold text-[#1F1D1B]">
-                      {booking.yourSeats ?? "\u2014"}
-                    </dd>
-                  </div>
-                  <div className="rounded-lg bg-[#F8F6F2] px-2 py-2.5">
-                    <dt className="text-xs text-[#6B6660]">Joined</dt>
-                    <dd className="font-semibold text-[#1F1D1B]">
-                      {booking.seatsJoined ?? 0}
-                    </dd>
-                  </div>
-                </dl>
-              </section>
+              <StatRow
+                className="mt-8 !grid-cols-3"
+                stats={[
+                  { label: "Total seats", value: booking.totalSeats ?? "-" },
+                  { label: "Host's party", value: booking.yourSeats ?? "-" },
+                  { label: "Joined", value: booking.seatsJoined ?? 0 },
+                ]}
+              />
 
               {booking.occasion && (
-                <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-                  <h3 className="text-sm font-semibold text-[#1F1D1B]">Occasion</h3>
-                  <p className="mt-1 text-sm text-[#514C47]">
+                <DetailBlock label="Occasion">
+                  <p className="font-display text-xl tracking-[-0.02em]">
                     {booking.occasion.toLowerCase() === "other"
                       ? booking.otherOccasion || booking.occasion
                       : booking.occasion}
                   </p>
-                </section>
+                </DetailBlock>
               )}
 
-              <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-                <h3 className="text-sm font-semibold text-[#1F1D1B]">Host</h3>
-                <div className="mt-1">
+              <DetailBlock label="Host">
+                <div>
                   <TableCreatedBy
                     hostId={booking.userId}
                     hostName={booking.name}
@@ -249,20 +212,17 @@ export default function DiningJourneyDetailsModal({
                     their own submission — a guest doesn't need a
                     stranger's phone/email just to see who's hosting. */}
                 {isHost && (booking.phone || booking.email) && (
-                  <div className="mt-1 space-y-0.5 text-xs text-[#6B6660]">
+                  <div className="mt-3 space-y-1 font-meta text-[11px] uppercase tracking-[0.1em] text-paper/55">
                     {booking.phone && <p>{booking.phone}</p>}
                     {booking.email && <p>{booking.email}</p>}
                   </div>
                 )}
-              </section>
+              </DetailBlock>
 
               {booking.notes && (
-                <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-                  <h3 className="text-sm font-semibold text-[#1F1D1B]">
-                    Special requests
-                  </h3>
-                  <p className="mt-1 text-sm text-[#514C47]">{booking.notes}</p>
-                </section>
+                <DetailBlock label="Special requests">
+                  <p className="text-sm leading-6 text-paper/75">{booking.notes}</p>
+                </DetailBlock>
               )}
 
               <JoinedGuestsList
@@ -276,10 +236,7 @@ export default function DiningJourneyDetailsModal({
               />
 
               {canEditRequest && (
-                <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-                  <h3 className="text-sm font-semibold text-[#1F1D1B]">
-                    Your request
-                  </h3>
+                <DetailBlock label="Your request">
                   <EditJoinRequest
                     key={`${entry.request.id}-${entry.request.seats}-${entry.request.message ?? ""}`}
                     request={entry.request}
@@ -290,7 +247,7 @@ export default function DiningJourneyDetailsModal({
                       onUpdateRequest(entry.request, seats, message)
                     }
                   />
-                </section>
+                </DetailBlock>
               )}
 
               {canChangeSeats && (
@@ -313,18 +270,15 @@ export default function DiningJourneyDetailsModal({
             !isCancelled &&
             !hasTableStarted(table) &&
             entry.pendingRequests?.length > 0 && (
-            <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-              <h3 className="text-sm font-semibold text-[#1F1D1B]">Join requests</h3>
+            <DetailBlock label="Join requests">
               <PendingRequestsList
                 requests={entry.pendingRequests}
                 pendingActionId={pendingActionId}
                 error={actionErrors}
                 onRespond={onRespond}
               />
-            </section>
+            </DetailBlock>
           )}
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -112,7 +112,7 @@ export function validateTableSettings(booking, changes) {
   const yourSeats =
     changes?.yourSeats !== undefined ? Number(changes.yourSeats) : 1;
   if (!Number.isInteger(yourSeats) || yourSeats < 1) {
-    return "Your party needs at least 1 seat — you.";
+    return "Your party needs at least 1 seat: you.";
   }
 
   const { occupied } = computeSeatState(next);

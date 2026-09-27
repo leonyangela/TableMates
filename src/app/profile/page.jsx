@@ -6,8 +6,11 @@ import { useRouter } from "next/navigation";
 import ProfileField from "@/components/profile/profile-field.component";
 import Button from "@/components/button/button.component";
 import WrapperComponent from "@/components/wrapper/wrapper.component";
+import MetaLabel from "@/components/ui/meta-label.component";
+import Section from "@/components/ui/section.component";
+import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states.component";
+import { DISPLAY, FIELD } from "@/components/ui/styles";
 import ReauthModal from "@/components/profile/reauth-modal.component";
-import Header from "@/components/header/header.component";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -17,6 +20,7 @@ import Avatar from "@/components/profile/avatar.component";
 import ProfileStats from "@/components/profile/profile-stats.component";
 import EmailVerificationNotice from "@/components/profile/email-verification-notice.component";
 import { useDiningRecord } from "@/hooks/useDiningRecord";
+import { parseInterests } from "@/lib/utils/validators.utils";
 import {
   DIETARY_OPTIONS,
   PROFILE_LIMITS,
@@ -43,17 +47,6 @@ function toForm(profile) {
     interests: (profile?.interests ?? []).join(", "),
     dietary: profile?.dietary ?? [],
   };
-}
-
-function parseInterests(text) {
-  return [
-    ...new Set(
-      String(text ?? "")
-        .split(",")
-        .map((interest) => interest.trim())
-        .filter(Boolean),
-    ),
-  ];
 }
 
 export default function ProfilePage() {
@@ -140,263 +133,223 @@ export default function ProfilePage() {
 
   if (authLoading) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-gray-500">Loading...</p>
-      </div>
+      <WrapperComponent>
+        <p className="px-5 py-24 font-meta text-[11px] uppercase tracking-[0.14em] text-paper/55 md:px-10">
+          Loading…
+        </p>
+      </WrapperComponent>
     );
   }
 
   if (!user) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-gray-500">
-          You need to be logged in to view your profile.
-        </p>
-      </div>
+      <WrapperComponent>
+        <div className="px-5 py-24 md:px-10">
+          <EmptyState
+            label="Members only"
+            title="Log in to view your profile."
+            action={<Button arrow href="/login?redirect=/profile">Log in</Button>}
+          />
+        </div>
+      </WrapperComponent>
     );
   }
 
+  const displayName = profile?.name || "Add your name";
+
   return (
-    <WrapperComponent paddingX="lg" className="pt-12">
-      <Header
-        eyebrow="your profile"
-        title="Your account"
-        description="View and update your details."
-      />
-      <AdminTools />
+    <WrapperComponent>
+      {/* Opening: the portrait cropped tall, the name at poster scale. */}
+      <header className="grid gap-10 px-5 pb-16 pt-10 md:grid-cols-12 md:px-10 md:pt-16">
+        <div className="md:col-span-3">
+          <MetaLabel>Your account</MetaLabel>
+          {/* Plain <img> (Avatar): photo URLs can be any host, which
+              next/image would reject. */}
+          <Avatar
+            name={profile?.name || profile?.email}
+            photoURL={profile?.photoURL}
+            size="portrait"
+            className="mt-8"
+          />
+        </div>
 
-      <div className="mt-8 max-w-3xl">
-        {isLoading && !profile ? (
-          <div className="py-16 text-center">
-            <p className="text-gray-500">Loading your profile...</p>
-          </div>
-        ) : fetchError ? (
-          <div className="py-16 text-center border border-gray-200 rounded-2xl">
-            <h2 className="font-semibold text-lg">Something went wrong</h2>
-            <p className="text-gray-500 mt-1">{fetchError}</p>
-            <Button
-              onClick={fetchProfile}
-              variant="try-again"
-            >
-              Try again
-            </Button>
-          </div>
-        ) : (
-          <div className="bg-white border border-gray-200 rounded-2xl p-6">
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div className="flex items-center gap-4">
-                {/* Plain <img> (Avatar): photo URLs can be any host, which
-                    next/image would reject. */}
-                <Avatar
-                  name={profile?.name || profile?.email}
-                  photoURL={profile?.photoURL}
-                  size="lg"
-                />
-                <div>
-                  <h2 className="text-xl font-semibold">
-                    {profile?.name || "Add your name"}
-                  </h2>
-                  <p className="text-sm text-gray-500">{profile?.email}</p>
-                  <EmailVerificationNotice />
-                </div>
-              </div>
-
-              {!isEditing && (
-                <Button variant="tertiary" onClick={startEditing}>
-                  Edit profile
-                </Button>
-              )}
-            </div>
-
-            {isEditing ? (
-              <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      Full name
-                    </label>
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={handleChange("name")}
-                      placeholder="Jane Doe"
-                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={handleChange("email")}
-                      placeholder="jane@example.com"
-                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-gray-200 text-gray-500"
-                      disabled
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Please contact support if you want to updates your email.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      Phone
-                    </label>
-                    <input
-                      type="tel"
-                      value={form.phone}
-                      onChange={handleChange("phone")}
-                      placeholder="+1 234 567 8900"
-                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">
-                    Photo URL
-                  </label>
-                  <input
-                    type="url"
-                    value={form.photoURL}
-                    onChange={handleChange("photoURL")}
-                    placeholder="https://..."
-                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Paste a link to an image — direct photo upload isn&apos;t
-                    set up yet.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">
-                    About you (optional)
-                  </label>
-                  <textarea
-                    rows={3}
-                    maxLength={PROFILE_LIMITS.bio}
-                    value={form.bio}
-                    onChange={handleChange("bio")}
-                    placeholder="Tell fellow diners a bit about yourself..."
-                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"
-                  />
-                  <p className="text-right text-xs text-gray-400">
-                    {form.bio.length}/{PROFILE_LIMITS.bio}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">
-                    Interests (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={form.interests}
-                    onChange={handleChange("interests")}
-                    placeholder="e.g. Ramen, Wine, Board games, Hiking"
-                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Separate with commas — up to {PROFILE_LIMITS.interests}.
-                  </p>
-                </div>
-
-                <fieldset>
-                  <legend className="block text-xs text-gray-500 mb-1.5">
-                    Dietary preferences (optional)
-                  </legend>
-                  <div className="flex flex-wrap gap-1.5">
-                    {DIETARY_OPTIONS.map((option) => {
-                      const isActive = form.dietary.includes(option);
-                      return (
-                        <button
-                          key={option}
-                          type="button"
-                          aria-pressed={isActive}
-                          onClick={() =>
-                            setForm((prev) => ({
-                              ...prev,
-                              dietary: isActive
-                                ? prev.dietary.filter((item) => item !== option)
-                                : [...prev.dietary, option],
-                            }))
-                          }
-                          className={`rounded-full border px-3 py-1 text-xs transition ${
-                            isActive
-                              ? "border-black bg-black text-white"
-                              : "border-gray-300 text-gray-600 hover:border-gray-400"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-
-                <p className="text-xs text-gray-400">
-                  Your name, photo, about, interests and dietary preferences
-                  are shown to diners you share a table with. Your phone and
-                  email are never shown.
-                </p>
-
-                {(saveError || emailError) && (
-                  <p className="text-sm text-red-600">
-                    {saveError || emailError}
-                  </p>
-                )}
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSaving || isUpdatingEmail}
-                    className="flex-1 px-4 py-2.5 rounded-lg bg-black text-white text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
-                  >
-                    {isSaving || isUpdatingEmail ? "Saving..." : "Save changes"}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                <ProfileField label="Full name" value={profile?.name} />
-                <ProfileField label="Phone" value={profile?.phone} />
-                <ProfileField label="Email" value={profile?.email} />
-                <ProfileField label="About you" value={profile?.bio} />
-                <ProfileField
-                  label="Interests"
-                  value={(profile?.interests ?? []).join(", ")}
-                />
-                <ProfileField
-                  label="Dietary preferences"
-                  value={(profile?.dietary ?? []).join(", ")}
-                />
-              </div>
+        <div className="md:col-span-9 md:self-end">
+          <h1 className={`${DISPLAY.page} break-words`}>
+            {displayName}
+            <span className="text-coffee-bean-400">.</span>
+          </h1>
+          <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+            <MetaLabel>{profile?.email}</MetaLabel>
+            <EmailVerificationNotice />
+            {!isEditing && profile && (
+              <Button variant="ghost" onClick={startEditing}>
+                Edit profile
+              </Button>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      </header>
 
-      <section className="mt-6 mb-12 max-w-3xl rounded-2xl border border-gray-200 bg-white p-6">
-        <h2 className="text-lg font-semibold">Your dining record</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          This is what other diners see on your profile — except your join
-          requests, which only you can see.
-        </p>
+      <div className="space-y-20 px-5 pb-20 md:px-10">
+        <AdminTools />
 
-        <div className="mt-5">
+        <Section
+          label="Details"
+          note="Your name, photo, about, interests and dietary preferences are shown to diners you share a table with. Your phone and email never are."
+        >
+          {isLoading && !profile ? (
+            <div className="space-y-4">
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-6 w-1/3" />
+            </div>
+          ) : fetchError ? (
+            <ErrorState title="Couldn't load your profile." text={fetchError} onRetry={fetchProfile} />
+          ) : isEditing ? (
+            <form onSubmit={handleSave} className="grid gap-x-10 gap-y-10 md:grid-cols-2">
+              <div>
+                <label htmlFor="profile-name" className={FIELD.label}>Full name</label>
+                <input
+                  id="profile-name"
+                  type="text"
+                  value={form.name}
+                  onChange={handleChange("name")}
+                  placeholder="Your name"
+                  className={FIELD.input}
+                />
+              </div>
+              <div>
+                <label htmlFor="profile-email" className={FIELD.label}>Email</label>
+                <input
+                  id="profile-email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange("email")}
+                  className={`${FIELD.input} text-paper/50`}
+                  disabled
+                />
+                <p className={FIELD.hint}>
+                  Contact support if you want to update your email.
+                </p>
+              </div>
+              <div>
+                <label htmlFor="profile-phone" className={FIELD.label}>Phone</label>
+                <input
+                  id="profile-phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={handleChange("phone")}
+                  placeholder="+61 400 000 000"
+                  className={FIELD.input}
+                />
+              </div>
+              <div>
+                <label htmlFor="profile-photo" className={FIELD.label}>Photo URL</label>
+                <input
+                  id="profile-photo"
+                  type="url"
+                  value={form.photoURL}
+                  onChange={handleChange("photoURL")}
+                  placeholder="https://..."
+                  className={FIELD.input}
+                />
+                <p className={FIELD.hint}>
+                  Paste a link to an image. Direct photo upload isn&apos;t set up yet.
+                </p>
+              </div>
+
+              <div className="md:col-span-2">
+                <label htmlFor="profile-bio" className={FIELD.label}>About you (optional)</label>
+                <textarea
+                  id="profile-bio"
+                  rows={3}
+                  maxLength={PROFILE_LIMITS.bio}
+                  value={form.bio}
+                  onChange={handleChange("bio")}
+                  placeholder="Tell fellow diners a bit about yourself"
+                  className={`${FIELD.input} h-auto resize-none py-3`}
+                />
+                <p className={`${FIELD.hint} text-right`}>
+                  {form.bio.length}/{PROFILE_LIMITS.bio}
+                </p>
+              </div>
+
+              <div className="md:col-span-2">
+                <label htmlFor="profile-interests" className={FIELD.label}>Interests (optional)</label>
+                <input
+                  id="profile-interests"
+                  type="text"
+                  value={form.interests}
+                  onChange={handleChange("interests")}
+                  placeholder="Ramen, wine, board games, hiking"
+                  className={FIELD.input}
+                />
+                <p className={FIELD.hint}>
+                  Separate with commas, up to {PROFILE_LIMITS.interests}.
+                </p>
+              </div>
+
+              <fieldset className="md:col-span-2">
+                <legend className={FIELD.label}>Dietary preferences (optional)</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {DIETARY_OPTIONS.map((option) => {
+                    const isActive = form.dietary.includes(option);
+                    return (
+                      <Button
+                        key={option}
+                        variant="chip"
+                        active={isActive}
+                        aria-pressed={isActive}
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            dietary: isActive
+                              ? prev.dietary.filter((item) => item !== option)
+                              : [...prev.dietary, option],
+                          }))
+                        }
+                      >
+                        {option}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              {(saveError || emailError) && (
+                <p role="alert" className="border-l-2 border-coffee-bean-400 pl-4 text-sm text-coffee-bean-200 md:col-span-2">
+                  {saveError || emailError}
+                </p>
+              )}
+
+              <div className="flex gap-3 md:col-span-2">
+                <Button type="submit" disabled={isSaving || isUpdatingEmail}>
+                  {isSaving || isUpdatingEmail ? "Saving…" : "Save changes"}
+                </Button>
+                <Button variant="outline" onClick={handleCancel}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <dl className="grid gap-x-10 md:grid-cols-2">
+              <ProfileField label="Full name" value={profile?.name} />
+              <ProfileField label="Phone" value={profile?.phone} />
+              <ProfileField label="Email" value={profile?.email} />
+              <ProfileField label="Interests" value={(profile?.interests ?? []).join(", ")} />
+              <ProfileField label="Dietary preferences" value={(profile?.dietary ?? []).join(", ")} />
+              <ProfileField label="About you" value={profile?.bio} wide />
+            </dl>
+          )}
+        </Section>
+
+        <Section
+          label="Your dining record"
+          note="What other diners see on your profile, except your join requests, which only you can see."
+        >
           {recordLoading ? (
-            <p className="text-sm text-gray-500">Loading your record...</p>
+            <Skeleton className="h-24 w-full" />
           ) : recordError ? (
-            <p className="text-sm text-red-600">{recordError}</p>
+            <ErrorState title="Couldn't load your record." text={recordError} />
           ) : record ? (
             <ProfileStats
               profile={record.profile}
@@ -404,8 +357,8 @@ export default function ProfilePage() {
               requestStats={record.requestStats}
             />
           ) : null}
-        </div>
-      </section>
+        </Section>
+      </div>
 
       <ReauthModal
         isOpen={needsReauth}

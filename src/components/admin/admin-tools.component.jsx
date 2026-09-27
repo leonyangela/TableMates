@@ -18,11 +18,11 @@ export default function AdminTools() {
   }
 
   return (
-    <section className="mt-6 max-w-3xl rounded-2xl border border-dashed border-gray-300 p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+    <section className="border border-dashed border-paper/20 p-6">
+      <p className="font-meta text-[11px] uppercase tracking-[0.14em] text-coffee-bean-300">
         Admin
       </p>
-      <p className="mt-1 text-sm text-gray-600">
+      <p className="mt-2 max-w-xl text-sm text-paper/65">
         Restaurant data. Seeding overwrites the seeded restaurants; the
         backfill adds search keywords and rebuilds the category list.
       </p>

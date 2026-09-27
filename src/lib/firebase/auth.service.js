@@ -11,7 +11,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import { saveUserProfile } from "@/lib/firebase/firestore.service";
-import { syncPublicProfile } from "@/services/profileService";
+import { sanitizePublicProfile, syncPublicProfile } from "@/services/profileService";
 
 export function loginWithEmail(email, password) {
   return signInWithEmailAndPassword(auth, email.trim(), password);
@@ -21,13 +21,14 @@ export function loginWithEmail(email, password) {
  * Creates the account, then everything that should exist for a new user
  * before they're sent anywhere:
  *  - the display name (Firebase can't take it at creation time),
- *  - their private users/{uid} doc (name + email),
+ *  - their private users/{uid} doc (name, email, phone, and the optional
+ *    bio / interests / dietary from `details`),
  *  - their public profile, with their real name — onAuthStateChanged
  *    fires before updateProfile finishes, so SessionEffects may already
  *    have created it from the email prefix; syncing here corrects it,
  *  - a verification email (best-effort: never fails the sign-up).
  */
-export async function signUpWithEmail(email, password, displayName) {
+export async function signUpWithEmail(email, password, displayName, details = {}) {
   const name = displayName.trim();
   const credential = await createUserWithEmailAndPassword(
     auth,
@@ -40,9 +41,21 @@ export async function signUpWithEmail(email, password, displayName) {
     await updateProfile(user, { displayName: name });
   }
 
+  const { phone = "", bio = "", interests = [], dietary = [] } = details;
+  const profile = sanitizePublicProfile({ displayName: name, photoURL: "", bio, interests, dietary });
+
   await Promise.all([
-    saveUserProfile(user.uid, { name, email: user.email }),
-    syncPublicProfile(user, { displayName: name, photoURL: "" }),
+    saveUserProfile(user.uid, {
+      name,
+      email: user.email,
+      phone: phone.trim(),
+      photoURL: "",
+      bio: profile.bio,
+      interests: profile.interests,
+      dietary: profile.dietary,
+    }),
+    // What other diners see: never phone or email.
+    syncPublicProfile(user, profile),
   ]);
 
   try {

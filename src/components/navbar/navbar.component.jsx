@@ -14,13 +14,15 @@ import MobileNavOverlay from "@/components/navbar/mobile-nav-overlay.component";
 
 import { NAVBAR_ITEMS, AUTH_ITEMS } from "@/lib/constants/navbar.constants";
 
-// How far the homepage has to scroll before the transparent bar turns solid.
+// How far the page has to scroll before the bar gets its backdrop.
 const SOLID_AFTER_PX = 24;
 
 /**
- * Dark floating navbar. On the homepage it sits transparently on top of
- * the dark hero and turns into the solid bar once you scroll; everywhere
- * else it's solid from the start. Mobile opens a full-screen menu.
+ * Editorial top bar: wordmark left, page links in small mono type in the
+ * middle (the current one in the accent), account actions right. It is
+ * transparent at the top of the page and picks up a dark backdrop once
+ * you scroll. The homepage hero runs underneath it; everywhere else it
+ * takes up its own space. Mobile opens a full-screen menu.
  */
 export default function Navbar() {
   const pathname = usePathname();
@@ -33,16 +35,13 @@ export default function Navbar() {
 
   const [scrolled, setScrolled] = useState(false);
   const overHero = pathname === "/";
-  const transparent = overHero && !scrolled;
 
   useEffect(() => {
-    if (!overHero) return undefined;
-
     const handleScroll = () => setScrolled(window.scrollY > SOLID_AFTER_PX);
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [overHero]);
+  }, []);
 
   const navLinks = NAVBAR_ITEMS.filter(
     (item) => item.auth === "all" || (isLoggedIn && !loading),
@@ -50,46 +49,42 @@ export default function Navbar() {
 
   return (
     <>
-      {/* On the homepage the bar is fixed so it overlays the hero (which
-          leaves room for it); elsewhere it's sticky and takes up space. */}
-      <div
-        className={`z-50 w-full ${
-          overHero ? "fixed inset-x-0 top-0 px-6 pt-6" : "sticky top-0 px-3 pt-3"
+      <header
+        className={`inset-x-0 top-0 z-50 border-b transition-[background-color,border-color] duration-500 ${
+          overHero ? "fixed" : "sticky"
+        } ${
+          scrolled
+            ? "border-paper/10 bg-ink/85 backdrop-blur-md"
+            : "border-transparent bg-transparent"
         }`}
       >
-        <nav
-          className={`flex w-full items-center justify-between rounded-full px-4 py-2.5 text-white transition-[background-color,border-color,box-shadow] duration-300 md:px-6 ${
-            transparent
-              ? "border border-transparent bg-transparent"
-              : "border border-white/10 bg-rosy-copper-950/90 shadow-lg shadow-rosy-copper-950/20 backdrop-blur-md"
-          }`}
-        >
-          <Logo className="text-white" />
+        <nav className="grid h-18 grid-cols-[1fr_auto] items-center gap-6 px-5 md:grid-cols-12 md:px-10">
+          <Logo className="text-paper md:col-span-3" />
 
           {/* Desktop */}
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden items-center gap-8 md:col-span-5 md:flex">
             {navLinks.map((item) => (
               <NavLink key={item.path} href={item.path} title={item.title} />
             ))}
+          </div>
 
-            <div className="ml-3 flex items-center gap-2 border-l border-white/15 pl-4">
-              {!loading &&
-                (isLoggedIn ? (
-                  <>
-                    <NotificationBell />
-                    <ProfileDropdown />
-                  </>
-                ) : (
-                  AUTH_ITEMS.map((item) => (
-                    <NavLink
-                      key={item.path}
-                      href={item.path}
-                      title={item.title}
-                      variant={item.variant}
-                    />
-                  ))
-                ))}
-            </div>
+          <div className="hidden items-center justify-end gap-6 md:col-span-4 md:flex">
+            {!loading &&
+              (isLoggedIn ? (
+                <>
+                  <NotificationBell />
+                  <ProfileDropdown />
+                </>
+              ) : (
+                AUTH_ITEMS.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    href={item.path}
+                    title={item.title}
+                    variant={item.variant}
+                  />
+                ))
+              ))}
           </div>
 
           {/* Mobile */}
@@ -98,7 +93,7 @@ export default function Navbar() {
             onClick={() => setOpenPath(menuOpen ? null : pathname)}
           />
         </nav>
-      </div>
+      </header>
 
       {menuOpen && <MobileNavOverlay links={navLinks} onClose={closeMenu} />}
     </>

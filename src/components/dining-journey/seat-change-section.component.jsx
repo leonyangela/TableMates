@@ -45,31 +45,31 @@ export default function SeatChangeSection({
   };
 
   return (
-    <section className="mt-5 border-t border-[#E5E1DB] pt-4">
-      <h3 className="text-sm font-semibold text-[#1F1D1B]">Your seats</h3>
-      <p className="mt-1 text-sm text-[#514C47]">
+    <section className="mt-8">
+      <h3 className="font-meta text-[11px] uppercase tracking-[0.14em] text-paper/55">Your seats</h3>
+      <p className="mt-3 text-sm text-paper/75">
         You have {seatLabel(currentSeats)} at this table.
       </p>
 
       {isAwaitingHost ? (
-        <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm text-info">
+        <p className="mt-4 flex items-center gap-2 border-l-2 border-coffee-bean-400 py-1 pl-4 text-sm text-paper/80">
           <Clock3 className="h-4 w-4 shrink-0" />
           Waiting for the host to approve {seatLabel(seatChangeRequest.seats)}.
         </p>
       ) : (
         <>
           {wasDeclined && (
-            <p className="mt-2 text-xs text-[#6B6660]">
+            <p className="mt-2 text-sm text-paper/60">
               The host declined your last request for{" "}
               {seatLabel(seatChangeRequest.seats)}.
             </p>
           )}
 
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="text-xs text-[#6B6660]">
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="font-meta text-[11px] uppercase tracking-[0.14em] text-paper/60">
               <p>Change to</p>
               <p>
-                Up to {maxSeats} — {seatsAvailable} more{" "}
+                Up to {maxSeats}, {seatsAvailable} more{" "}
                 {seatsAvailable === 1 ? "is" : "are"} free
               </p>
             </div>
@@ -85,17 +85,17 @@ export default function SeatChangeSection({
             size="sm"
             onClick={handleSubmit}
             disabled={isPending || seats === currentSeats}
-            className="mt-3 w-full"
+            className="mt-5"
           >
             {isPending ? "Sending…" : "Ask host to change seats"}
           </Button>
-          <p className="mt-1.5 text-xs text-[#9A938B]">
+          <p className="mt-2 text-xs text-paper/50">
             The host needs to accept before your seats change.
           </p>
         </>
       )}
 
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-coffee-bean-300">{error}</p>}
     </section>
   );
 }

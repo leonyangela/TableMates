@@ -7,12 +7,12 @@ export default function PasswordChecklist({ password, id }) {
   const checks = getPasswordChecks(password);
 
   return (
-    <ul id={id} className="mt-1.5 space-y-0.5" aria-label="Password requirements">
+    <ul id={id} className="mt-3 space-y-1" aria-label="Password requirements">
       {checks.map((check) => (
         <li
           key={check.id}
           className={`flex items-center gap-1.5 text-xs ${
-            check.met ? "text-green-700" : "text-gray-500"
+            check.met ? "text-paper" : "text-paper/45"
           }`}
         >
           {check.met ? (

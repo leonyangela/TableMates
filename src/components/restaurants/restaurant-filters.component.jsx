@@ -9,6 +9,8 @@ import {
 import { toCategoryList } from "@/lib/utils/restaurant-categories.utils";
 import { useRestaurantCategories } from "@/hooks/useRestaurantCategories";
 import CategoryDropdown from "./category-dropdown.component";
+import { META } from "@/components/ui/styles";
+import Button from "@/components/button/button.component";
 
 
 /** Adds/removes one value from an array-valued filter field. */
@@ -113,9 +115,9 @@ export default function RestaurantFilters({
 
   
 
-  // Sits on the dark search banner — light-on-dark controls.
+  // A single line of small mono controls under the search.
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={`${META} flex flex-wrap items-center gap-x-7 gap-y-4 text-paper/65`}>
       <CategoryDropdown
         tone="dark"
         value={filters.category ?? null}
@@ -133,9 +135,10 @@ export default function RestaurantFilters({
         const isActive = otherValues.includes(option.value);
 
         return (
-          <button
+          <Button
             key={option.value}
-            type="button"
+            variant="check"
+            active={isActive}
             aria-pressed={isActive}
             onClick={() =>
               onChange({
@@ -143,20 +146,15 @@ export default function RestaurantFilters({
                 other: toggleArrayValue(otherValues, option.value),
               })
             }
-            className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-              isActive
-                ? "border-primary bg-primary text-white"
-                : "border-white/15 bg-white/5 text-accent hover:border-white/30 hover:text-white"
-            }`}
           >
             {option.label}
-          </button>
+          </Button>
         );
       })}
 
       {/* Price range */}
-      <div className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 py-1 pl-4 pr-1 text-sm text-white">
-        <span className="text-accent/70">$</span>
+      <div className="flex items-center gap-2">
+        <span>Price $</span>
         <input
           type="number"
           inputMode="numeric"
@@ -167,9 +165,9 @@ export default function RestaurantFilters({
           value={priceMin}
           onChange={(event) => setPriceMin(event.target.value)}
           onBlur={handlePriceBlur}
-          className="w-12 bg-transparent outline-none placeholder:text-accent/40"
+          className="w-12 border-b border-paper/25 bg-transparent pb-1 text-paper outline-none placeholder:text-paper/35 focus:border-coffee-bean-400"
         />
-        <span className="text-accent/70">to</span>
+        <span>to</span>
         <input
           type="number"
           inputMode="numeric"
@@ -180,25 +178,17 @@ export default function RestaurantFilters({
           value={priceMax}
           onChange={(event) => setPriceMax(event.target.value)}
           onBlur={handlePriceBlur}
-          className="w-12 bg-transparent outline-none placeholder:text-accent/40"
+          className="w-12 border-b border-paper/25 bg-transparent pb-1 text-paper outline-none placeholder:text-paper/35 focus:border-coffee-bean-400"
         />
-        <button
-          type="button"
-          onClick={handleApplyPriceFilter}
-          className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-rosy-copper-950 transition hover:bg-accent"
-        >
+        <Button variant="link" onClick={handleApplyPriceFilter} className="ml-1">
           Apply
-        </button>
+        </Button>
       </div>
 
       {hasActiveFilters && (
-        <button
-          type="button"
-          onClick={handleClear}
-          className="px-2 text-sm font-medium text-accent underline-offset-4 hover:text-white hover:underline"
-        >
+        <Button variant="text-accent" onClick={handleClear}>
           Clear all
-        </button>
+        </Button>
       )}
     </div>
   );

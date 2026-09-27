@@ -5,7 +5,7 @@ export const NAVBAR_ITEMS = [
     auth: "all",
   },
   {
-    title: "Restaurant",
+    title: "Restaurants",
     path: "/restaurants",
     auth: "all",
   },
@@ -23,11 +23,11 @@ export const NAVBAR_ITEMS = [
 
 export const AUTH_ITEMS = [
   {
-    title: "Login",
+    title: "Log in",
     path: "/login",
   },
   {
-    title: "Sign Up",
+    title: "Join",
     path: "/sign-up",
     variant: "button",
   },

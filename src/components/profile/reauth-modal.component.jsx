@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 
+import ModalShell from "@/components/ui/modal-shell.component";
+import { FIELD } from "@/components/ui/styles";
+import Button from "@/components/button/button.component";
+
 export default function ReauthModal({ isOpen, isSubmitting, error, onConfirm, onCancel }) {
   const [password, setPassword] = useState("");
 
@@ -13,43 +17,43 @@ export default function ReauthModal({ isOpen, isSubmitting, error, onConfirm, on
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-        <h2 className="font-semibold text-lg mb-1">Confirm your password</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          For your security, please re-enter your password to change your email.
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-3">
+    <ModalShell
+      label="Security check"
+      title="Confirm your password"
+      subtitle="For your security, re-enter your password to change your email."
+      onClose={onCancel}
+      labelledBy="reauth-title"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="reauth-password" className={FIELD.label}>
+            Password
+          </label>
           <input
+            id="reauth-password"
             type="password"
             autoFocus
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+            className={FIELD.input}
           />
+        </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="border-l-2 border-coffee-bean-400 pl-4 text-sm text-coffee-bean-200">
+            {error}
+          </p>
+        )}
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !password}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-black text-white text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
-            >
-              {isSubmitting ? "Confirming..." : "Confirm"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex gap-3">
+          <Button type="submit" disabled={isSubmitting || !password}>
+            {isSubmitting ? "Confirming…" : "Confirm"}
+          </Button>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </ModalShell>
   );
 }

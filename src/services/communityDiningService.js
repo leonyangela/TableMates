@@ -581,7 +581,7 @@ export async function requestSeatChange({ bookingId, userId, seats }) {
 
     if (newSeats - currentSeats > seatsAvailable) {
       throw new Error(
-        `Only ${seatsAvailable} more seat(s) available — you can have up to ${currentSeats + seatsAvailable}.`,
+        `Only ${seatsAvailable} more seat(s) available. You can have up to ${currentSeats + seatsAvailable}.`,
       );
     }
 
@@ -713,7 +713,7 @@ export async function respondToJoinRequest({ request, accept }) {
 
       if (current.seats - currentSeats > seatsAvailable) {
         throw new Error(
-          `Only ${seatsAvailable} seat(s) left — not enough for this change.`,
+          `Only ${seatsAvailable} seat(s) left, not enough for this change.`,
         );
       }
 
@@ -746,7 +746,7 @@ export async function respondToJoinRequest({ request, accept }) {
 
     if (current.seats > seatsAvailable) {
       throw new Error(
-        `Only ${seatsAvailable} seat(s) left — not enough for this request.`,
+        `Only ${seatsAvailable} seat(s) left, not enough for this request.`,
       );
     }
 

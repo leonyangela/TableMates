@@ -1,64 +1,79 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import Logo from "@/components/logo/logo.component";
 
+import Logo from "@/components/logo/logo.component";
+import MetaLabel from "@/components/ui/meta-label.component";
+import { DISPLAY, META } from "@/components/ui/styles";
+import { EDITORIAL_IMAGES } from "@/lib/constants/editorial-images";
+
+/**
+ * Auth pages: a full-height photograph on the left with the line set
+ * large over it, and the form on the right under a display-size title.
+ */
 export default function AuthLayout({
   title,
   subtitle,
   footer,
-  imageHeading = "Good food tastes better together.",
+  imageHeading = "A seat is waiting.",
   imageText = "Discover restaurants, book a table in seconds, and share the meal with people worth meeting.",
   children,
 }) {
   return (
-    <div className="flex min-h-svh w-full bg-white text-gray-900">
-      {/* Image panel — hidden on mobile, takes exactly half the screen from md up */}
-      <aside className="hidden md:block md:w-1/2 p-3 lg:p-4">
-        <div className="sticky top-3 lg:top-4 h-[calc(100svh-1.5rem)] lg:h-[calc(100svh-2rem)] overflow-hidden rounded-2xl">
-          <Image
-            src="/images/sign-up-bg.jpg"
-            alt=""
-            fill
-            priority
-            sizes="50vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-black/10" />
-          <div className="absolute inset-x-0 bottom-0 p-8 lg:p-12 text-white">
-            <h2 className="font-oswald text-3xl lg:text-4xl uppercase leading-tight max-w-md">
+    <div className="flex min-h-svh w-full bg-ink text-paper">
+      {/* Photograph: large screens only */}
+      <aside className="relative hidden lg:block lg:w-[52%]">
+        <div className="sticky top-0 h-svh overflow-hidden">
+          {/* next/image `fill` needs a positioned (not sticky) parent. */}
+          <div className="absolute inset-0">
+            <Image
+              src={EDITORIAL_IMAGES.toast.src}
+              alt=""
+              fill
+              loading="eager"
+              fetchPriority="high"
+              sizes="52vw"
+              className="object-cover"
+            />
+          </div>
+          <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/30 to-ink/10" />
+          <div className="absolute inset-x-10 bottom-10">
+            <p className="font-display text-[clamp(4rem,8vw,8.5rem)] font-semibold leading-[0.86] tracking-[-0.055em]">
               {imageHeading}
-            </h2>
-            <p className="mt-3 max-w-md text-sm lg:text-base text-white/80">
+            </p>
+            <p className="mt-6 max-w-sm text-sm leading-6 text-paper/75">
               {imageText}
             </p>
           </div>
         </div>
       </aside>
 
-      <main className="w-full md:w-1/2 flex flex-col px-6 sm:px-10 lg:px-16 py-6">
+      <main className="flex w-full flex-col px-5 py-6 md:px-10 lg:w-[48%] lg:px-16">
         <header className="flex items-center justify-between">
-          <Logo />
+          <Logo className="text-paper" />
           <Link
             href="/"
-            className="text-sm text-gray-500 hover:text-primary transition-all duration-200 flex items-center gap-1"
+            className={`${META} flex items-center gap-2 text-paper/60 transition hover:text-coffee-bean-300`}
           >
-            <ArrowLeft size={16} />
-            Back to Home
+            <ArrowLeft size={14} />
+            Home
           </Link>
         </header>
 
-        <div className="flex-1 flex items-center justify-center py-10">
-          <div className="w-full max-w-sm">
-            <div className="mb-8">
-              <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-              {subtitle && <p className="mt-2 text-gray-500">{subtitle}</p>}
-            </div>
+        <div className="flex flex-1 items-center py-14">
+          <div className="w-full max-w-md">
+            <MetaLabel>TableMates account</MetaLabel>
+            <h1 className={`${DISPLAY.section} mt-6`}>{title}</h1>
+            {subtitle && (
+              <p className="mt-5 max-w-sm text-base leading-7 text-paper/65">
+                {subtitle}
+              </p>
+            )}
 
-            {children}
+            <div className="mt-12">{children}</div>
 
             {footer && (
-              <p className="mt-8 text-center text-sm text-gray-500">{footer}</p>
+              <p className="mt-10 text-sm text-paper/60">{footer}</p>
             )}
           </div>
         </div>

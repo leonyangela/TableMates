@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 
 import { useClickOutside } from "@/hooks/useClickOutside";
+import Button from "@/components/button/button.component";
 
 /**
  * Category picker with a scrollable list — a native <select> can't be
@@ -26,7 +27,7 @@ export default function CategoryDropdown({
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(containerRef, close, open);
 
-  const items = [{ value: null, label: "All categories" }].concat(
+  const items = [{ value: null, label: "All cuisines" }].concat(
     options.map((category) => ({ value: category, label: category })),
   );
 
@@ -77,8 +78,9 @@ export default function CategoryDropdown({
 
   return (
     <div ref={containerRef} className="relative">
-      <button
-        type="button"
+      <Button
+        variant="select"
+        active={Boolean(value)}
         onClick={() => setOpen((current) => !current)}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" && !open) {
@@ -89,27 +91,15 @@ export default function CategoryDropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition focus:outline-none ${
-          tone === "dark"
-            ? value
-              ? "border-primary bg-primary text-white"
-              : `bg-white/5 text-accent hover:text-white ${
-                  open ? "border-white/40" : "border-white/15 hover:border-white/30"
-                }`
-            : `bg-white text-grey-olive-950 ${
-                open || value
-                  ? "border-grey-olive-400"
-                  : "border-grey-olive-100 hover:border-grey-olive-300"
-              }`
-        }`}
+        className={open && !value ? "border-paper! text-paper!" : ""}
       >
-        <span className="max-w-40 truncate">{value ?? "All categories"}</span>
+        <span className="max-w-40 truncate">{value ?? "All cuisines"}</span>
         <ChevronDown
           className={`h-4 w-4 shrink-0 opacity-70 transition-transform ${
             open ? "rotate-180" : ""
           }`}
         />
-      </button>
+      </Button>
 
       {open && (
         <ul
@@ -118,33 +108,29 @@ export default function CategoryDropdown({
           role="listbox"
           aria-label="Category"
           onKeyDown={handleListKeyDown}
-          className="absolute left-0 top-full z-30 mt-2 max-h-64 w-60 overflow-y-auto overscroll-contain rounded-2xl border border-grey-olive-100 bg-white py-1.5 shadow-xl"
+          className="absolute left-0 top-full z-30 mt-3 max-h-72 w-64 overflow-y-auto overscroll-contain border border-paper/15 bg-ink py-2 normal-case tracking-normal"
         >
           {items.map((item) => {
             const isSelected = item.value === value;
 
             return (
               <li key={item.label}>
-                <button
-                  type="button"
+                <Button
+                  variant="menu-item"
+                  active={isSelected}
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => select(item.value)}
-                  className={`flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm transition focus:bg-accent focus:outline-none ${
-                    isSelected
-                      ? "font-semibold text-primary"
-                      : "text-grey-olive-800 hover:bg-accent"
-                  }`}
                 >
                   <span className="truncate">{item.label}</span>
                   {isSelected && <Check className="h-4 w-4 shrink-0" />}
-                </button>
+                </Button>
               </li>
             );
           })}
 
           {loading && (
-            <li className="px-4 py-2 text-xs text-grey-olive-400">
+            <li className="px-4 py-2 font-meta text-[11px] uppercase tracking-[0.14em] text-paper/45">
               Loading categories…
             </li>
           )}

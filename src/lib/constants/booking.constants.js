@@ -13,16 +13,16 @@ export const TABLE_VISIBILITY_OPTIONS = [
   {
     key: "private",
     label: "Private",
-    description: "Just my booking — no one else can join.",
+    description: "Just my booking. No one else can join.",
   },
   {
     key: "open_approval",
-    label: "Open Table — Approval Needed",
+    label: "Open table, approval needed",
     description: "Others can request to join; you approve who sits down.",
   },
   {
     key: "open_public",
-    label: "Open Table — Public",
+    label: "Open table, public",
     description: "Anyone can join instantly, no approval needed.",
   },
 ];

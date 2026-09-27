@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { Lock, X } from "lucide-react";
+import { Lock } from "lucide-react";
+import ModalShell from "@/components/ui/modal-shell.component";
+import { FIELD } from "@/components/ui/styles";
 import {
   DEFAULT_BOOKING_FORM,
   useBookingStore,
@@ -38,6 +40,8 @@ const formatRecurringDate = (date) =>
 import Button from "../button/button.component";
 import JoinedGuestsList from "../community-dining/joined-guests-list.component";
 import { useBackdropClose } from "@/hooks/useBackdropClose";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 // const TODAY_STR = new Date().toISOString().split("T")[0];
 
@@ -98,8 +102,21 @@ const BookingFormModal = ({
   const [form, setForm] = useState(() =>
     initialValues
       ? { ...DEFAULT_BOOKING_FORM, ...initialValues }
-      : DEFAULT_BOOKING_FORM,
+      : // Contact fields start unset (null) on a new booking, so they show
+        // the diner's profile details until edited (see `contact`).
+        { ...DEFAULT_BOOKING_FORM, name: null, phone: null, email: null },
   );
+
+  // Name, phone and email from the profile (set at sign-up, editable on
+  // the profile page), pre-filled for new bookings. Anything typed here
+  // wins, and only applies to this booking.
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const contact = {
+    name: form.name ?? profile?.name ?? user?.displayName ?? "",
+    phone: form.phone ?? profile?.phone ?? "",
+    email: form.email ?? profile?.email ?? user?.email ?? "",
+  };
 
   const {
     setCurrentBooking,
@@ -128,7 +145,8 @@ const BookingFormModal = ({
   const todayStr = getLocalDateString();
 
   const availableTimes = useMemo(() => {
-    const times = restaurant?.time_opening ?? [];
+    // Each slot once: they're option keys.
+    const times = [...new Set(restaurant?.time_opening ?? [])];
 
     if (form.date !== todayStr) {
       return times;
@@ -218,6 +236,7 @@ const BookingFormModal = ({
 
   const payload = {
     ...form,
+    ...contact,
     totalSeats: totalSeatsNum,
     yourSeats: yourSeatsNum,
     type: "restaurant",
@@ -254,42 +273,25 @@ const BookingFormModal = ({
       : [];
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      {...backdrop}
+    <ModalShell
+      label={isEditing ? "Edit your table" : "Reserve a table"}
+      title={restaurant.name}
+      subtitle={restaurant.tag}
+      onClose={onClose}
+      backdropProps={backdrop}
+      size="lg"
     >
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
-        {/* HEADER */}
-        <div className="flex items-start justify-between px-6 pt-6">
-          <div>
-            <p className="text-xs uppercase text-gray-400 tracking-wide">
-              {isEditing ? "Edit your table" : "Reserve a table"}
-            </p>
-            <h2 className="text-xl font-bold mt-1">{restaurant.name}</h2>
-            {restaurant.tag && (
-              <p className="text-sm text-gray-500 mt-1">{restaurant.tag}</p>
-            )}
-          </div>
-          <Button
-            onClick={onClose}
-            className="text-gray-400 hover:text-black hover:cursor-pointer transition"
-            aria-label="Close"
-          >
-            <X />
-          </Button>
-        </div>
-
         {submitted ? (
           /* SUCCESS STATE */
-          <div className="px-6 py-10 text-center">
-            <h3 className="text-lg font-bold">
+          <div>
+            <h3 className="font-display text-3xl font-semibold leading-tight tracking-[-0.035em]">
               {isEditing
                 ? `Table at ${restaurant.name} updated!`
                 : recurringDates.length > 1
                   ? `${recurringDates.length} tables at ${restaurant.name} requested!`
                   : `Reservation at ${restaurant.name} requested!`}
             </h3>
-            <p className="text-gray-500 text-sm mt-2">
+            <p className="mt-4 text-sm leading-6 text-paper/65">
               {isEditing
                 ? "Your changes have been saved. "
                 : `We've sent your request for ${form.totalSeats} seat${
@@ -303,7 +305,7 @@ const BookingFormModal = ({
               Dining Journey.
             </p>
             {isOpenTable && (
-              <p className="text-gray-500 text-sm mt-2">
+              <p className="mt-3 text-sm leading-6 text-paper/65">
                 You&apos;re keeping {yourSeatsNum} seat
                 {yourSeatsNum !== 1 ? "s" : ""} for yourself, leaving{" "}
                 {seatsAvailable} seat{seatsAvailable !== 1 ? "s" : ""} open.
@@ -314,19 +316,16 @@ const BookingFormModal = ({
                 from the Dining Journey feed until it fills up.
               </p>
             )}
-            <button
-              onClick={onClose}
-              className="mt-6 bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition hover:cursor-pointer"
-            >
+            <Button onClick={onClose} className="mt-8">
               Done
-            </button>
+            </Button>
           </div>
         ) : (
           /* FORM */
-          <form onSubmit={handleSubmit} className="px-6 py-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-8">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Date</label>
+                <label className={FIELD.label}>Date</label>
                 <input
                   type="date"
                   min={isEditing ? undefined : todayStr}
@@ -334,11 +333,11 @@ const BookingFormModal = ({
                   disabled={isEditing}
                   value={form.date}
                   onChange={handleDateChange}
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                  className={`${FIELD.input} [color-scheme:dark] disabled:text-paper/40`}
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Time</label>
+                <label className={FIELD.label}>Time</label>
                 <select
                   required
                   value={form.time}
@@ -346,7 +345,7 @@ const BookingFormModal = ({
                   disabled={
                     isEditing || !form.date || availableTimes.length === 0
                   }
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                  className={`${FIELD.input} [color-scheme:dark] disabled:text-paper/40`}
                 >
                   {/* Edit mode has no restaurant slot list (and the time is
                       locked anyway), so show the booked time as-is. */}
@@ -368,24 +367,24 @@ const BookingFormModal = ({
                 </select>
               </div>
               {isEditing && (
-                <p className="col-span-2 -mt-2 text-xs text-gray-400">
+                <p className={`col-span-2 -mt-4 ${FIELD.hint}`}>
                   Date and time can&apos;t be changed once the table is
-                  booked — guests joined for this slot.
+                  booked: guests joined for this slot.
                 </p>
               )}
             </div>
 
             {!isEditing && (
               <div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-8">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">
+                    <label className={FIELD.label}>
                       Repeat
                     </label>
                     <select
                       value={form.repeat}
                       onChange={handleChange("repeat")}
-                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                      className={`${FIELD.input} [color-scheme:dark]`}
                     >
                       {REPEAT_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -396,7 +395,7 @@ const BookingFormModal = ({
                   </div>
                   {isRepeating && (
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">
+                      <label className={FIELD.label}>
                         Number of tables
                       </label>
                       <input
@@ -406,13 +405,13 @@ const BookingFormModal = ({
                         required
                         value={form.repeatCount}
                         onChange={handleChange("repeatCount")}
-                        className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                        className={`${FIELD.input} [color-scheme:dark]`}
                       />
                     </div>
                   )}
                 </div>
                 {isRepeating && (
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className={FIELD.hint}>
                     {recurringDates.length > 0
                       ? `Creates ${recurringDates.length} separate tables at the same time: ${recurringDates
                           .map(formatRecurringDate)
@@ -423,9 +422,9 @@ const BookingFormModal = ({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-8">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">
+                <label className={FIELD.label}>
                   Total seats needed
                 </label>
                 <input
@@ -435,24 +434,24 @@ const BookingFormModal = ({
                   required
                   value={form.totalSeats}
                   onChange={handleTotalSeatsChange}
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                  className={`${FIELD.input} [color-scheme:dark]`}
                 />
                 {isEditing && editSeats.seatsJoined > 0 && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    Can&apos;t go below {minTotalSeats} — other diners already
+                  <p className={FIELD.hint}>
+                    Can&apos;t go below {minTotalSeats}. Other diners already
                     hold seats at this table.
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">
+                <label className={FIELD.label}>
                   Occasion
                 </label>
                 <select
                   required
                   value={form.occasion}
                   onChange={handleChange("occasion")}
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                  className={`${FIELD.input} [color-scheme:dark]`}
                 >
                   <option value="" disabled>
                     Select an occasion
@@ -469,7 +468,7 @@ const BookingFormModal = ({
             {/* Custom Occasion */}
             {form.occasion.toLowerCase() == "other" && (
               <div>
-                <label className="block text-xs text-gray-500 mb-1">
+                <label className={FIELD.label}>
                   Your occasion
                 </label>
                 <textarea
@@ -478,16 +477,16 @@ const BookingFormModal = ({
                   value={form.otherOccasion}
                   onChange={handleChange("otherOccasion")}
                   placeholder="e.g. Board Game Night, Casual Lunch, etc."
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"
+                  className={`${FIELD.input} h-auto resize-none py-3`}
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-xs text-gray-500 mb-2">
+              <label className={FIELD.label}>
                 Who can join your table?
               </label>
-              <div className="space-y-2">
+              <div>
                 {TABLE_VISIBILITY_OPTIONS.map((opt) => {
                   const isActive = form.tableVisibility === opt.key;
                   // Editing can only open a table up, never close it again.
@@ -496,14 +495,14 @@ const BookingFormModal = ({
                   return (
                     <label
                       key={opt.key}
-                      className={`flex items-start gap-3 border rounded-lg px-3 py-2 transition ${
+                      className={`flex items-start gap-4 border-t py-4 transition ${
                         isActive
-                          ? "border-black bg-gray-50"
-                          : "border-gray-200"
+                          ? "border-coffee-bean-400"
+                          : "border-paper/15"
                       } ${
                         isAllowed
-                          ? "cursor-pointer hover:border-gray-300"
-                          : "cursor-not-allowed opacity-50"
+                          ? "cursor-pointer hover:border-paper/50"
+                          : "cursor-not-allowed opacity-40"
                       }`}
                     >
                       <input
@@ -513,13 +512,13 @@ const BookingFormModal = ({
                         checked={isActive}
                         disabled={!isAllowed}
                         onChange={handleVisibilityChange(opt.key)}
-                        className="mt-1"
+                        className="mt-1.5 accent-coffee-bean-400"
                       />
                       <span>
-                        <span className="block text-sm font-medium">
+                        <span className="block font-display text-lg tracking-[-0.02em]">
                           {opt.label}
                         </span>
-                        <span className="block text-xs text-gray-500">
+                        <span className="block text-xs text-paper/60">
                           {opt.description}
                         </span>
                       </span>
@@ -528,7 +527,7 @@ const BookingFormModal = ({
                 })}
               </div>
               {isEditing && (
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-gray-400">
+                <p className={`${FIELD.hint} flex items-center gap-2`}>
                   <Lock className="h-3.5 w-3.5 shrink-0" />
                   {isLockedPublic
                     ? "Public tables cannot be changed back to private."
@@ -539,9 +538,9 @@ const BookingFormModal = ({
 
             {isOpenTable && (
               <>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-8">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">
+                    <label className={FIELD.label}>
                       Your seats (for your own party)
                     </label>
                     <input
@@ -551,14 +550,14 @@ const BookingFormModal = ({
                       required
                       value={form.yourSeats}
                       onChange={handleYourSeatsChange}
-                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                      className={`${FIELD.input} [color-scheme:dark]`}
                     />
                   </div>
                   <div>
-                    <p className="block text-xs text-gray-500">
+                    <p className={FIELD.label}>
                       Seats available for others
                     </p>
-                    <div className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50">
+                    <div className="w-full border-b border-paper/25 py-3 text-sm">
                       <span className="block font-semibold">
                         {seatsAvailable}
                       </span>
@@ -567,7 +566,7 @@ const BookingFormModal = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">
+                  <label className={FIELD.label}>
                     Short description about your table
                   </label>
                   <textarea
@@ -576,9 +575,9 @@ const BookingFormModal = ({
                     value={form.tableDescription}
                     onChange={handleChange("tableDescription")}
                     placeholder="e.g. Casual birthday dinner, open to fellow foodies!"
-                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"
+                    className={`${FIELD.input} h-auto resize-none py-3`}
                   />
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className={FIELD.hint}>
                     This is what other diners will see in the Dining Journey
                     feed before they join.
                   </p>
@@ -587,50 +586,55 @@ const BookingFormModal = ({
             )}
 
             <div>
-              <label className="block text-xs text-gray-500 mb-1">
+              <label className={FIELD.label}>
                 Full name
               </label>
               <input
                 type="text"
                 required
-                value={form.name}
+                value={contact.name}
                 onChange={handleChange("name")}
-                placeholder="Jane Doe"
-                className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                placeholder="Your name"
+                className={`${FIELD.input} [color-scheme:dark]`}
               />
+              {!isEditing && (
+                <p className={FIELD.hint}>
+                  Filled in from your profile. Changes here only apply to this booking.
+                </p>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-8">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">
+                <label className={FIELD.label}>
                   Phone
                 </label>
                 <input
                   type="tel"
                   required
-                  value={form.phone}
+                  value={contact.phone}
                   onChange={handleChange("phone")}
-                  placeholder="+1 234 567 8900"
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                  placeholder="+61 400 000 000"
+                  className={`${FIELD.input} [color-scheme:dark]`}
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">
+                <label className={FIELD.label}>
                   Email
                 </label>
                 <input
                   type="email"
                   required
-                  value={form.email}
+                  value={contact.email}
                   onChange={handleChange("email")}
-                  placeholder="jane@example.com"
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                  placeholder="you@example.com"
+                  className={`${FIELD.input} [color-scheme:dark]`}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-gray-500 mb-1">
+              <label className={FIELD.label}>
                 Special requests (optional)
               </label>
               <textarea
@@ -638,7 +642,7 @@ const BookingFormModal = ({
                 value={form.notes}
                 onChange={handleChange("notes")}
                 placeholder="Window seat, allergies, celebration, etc."
-                className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"
+                className={`${FIELD.input} h-auto resize-none py-3`}
               />
             </div>
 
@@ -665,34 +669,33 @@ const BookingFormModal = ({
             )}
 
             {validationError && (
-              <p className="text-sm text-red-600">{validationError}</p>
+              <p role="alert" className="border-l-2 border-coffee-bean-400 pl-4 text-sm text-coffee-bean-200">{validationError}</p>
             )}
 
             {bookingPreview === "error" && saveError && (
-              <p className="text-sm text-red-600">{saveError}</p>
+              <p role="alert" className="border-l-2 border-coffee-bean-400 pl-4 text-sm text-coffee-bean-200">{saveError}</p>
             )}
 
-            <button
+            <Button
               type="submit"
+              fullWidth
               disabled={
                 isSaving ||
                 Boolean(validationError) ||
                 (isEditing && !hasChanges)
               }
-              className="w-full bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving
                 ? "Submitting…"
                 : isEditing
                   ? hasChanges
-                    ? "Save Changes"
+                    ? "Save changes"
                     : "No changes to save"
-                  : "Confirm Reservation"}
-            </button>
+                  : "Confirm reservation"}
+            </Button>
           </form>
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 };
 
