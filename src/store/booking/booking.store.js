@@ -26,10 +26,9 @@ const getErrorMessage = (error) => {
  * the form's save/submission state, and the create/update calls
  * BookingFormModal triggers on submit.
  *
- * addBooking/updateBooking now write to Firestore via bookingService.js —
- * the actual persistence logic (field mapping, the editable-fields
- * allowlist on update) lives there, not here. This store stays focused on
- * UI/save state, same as before.
+ * Persistence (field mapping, the editable-fields allowlist, the private
+ * contact doc) lives in bookingService.js; this store only tracks the
+ * modal's UI and save state.
  */
 export const useBookingStore = create((set, get) => ({
   // Which restaurant the modal is open for. null means closed — this is
@@ -88,7 +87,7 @@ export const useBookingStore = create((set, get) => ({
     set({ editorError: null });
 
     try {
-      const booking = await getBookingDetails(bookingId);
+      const booking = await getBookingDetails(bookingId, { includeContact: true });
 
       if (!booking) {
         throw new Error("This table no longer exists.");
@@ -145,7 +144,7 @@ export const useBookingStore = create((set, get) => ({
         hostId: auth.currentUser?.uid,
       });
 
-      const fresh = await getBookingDetails(editingBooking.id);
+      const fresh = await getBookingDetails(editingBooking.id, { includeContact: true });
 
       if (get().editingBooking?.id === editingBooking.id && fresh) {
         set({ editingBooking: fresh });

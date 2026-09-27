@@ -32,6 +32,7 @@ import {
 } from "@/lib/constants/firestore-collections.constants";
 import {
   combineDateAndTime,
+  getHostName,
   hasTableStarted,
 } from "@/lib/utils/dining-journey.utils";
 import {
@@ -59,7 +60,9 @@ const TABLE_STARTED_MESSAGE = "This table has already taken place.";
  * this reason.
  */
 function resolveDisplayName() {
-  return auth.currentUser?.displayName || auth.currentUser?.email || "A diner";
+  // Never falls back to the email address: this name is written into
+  // publicly readable docs.
+  return auth.currentUser?.displayName || "A diner";
 }
 
 function toEntity(docSnap) {
@@ -121,7 +124,7 @@ function toTableView(booking) {
     tableDescription: booking.tableDescription ?? "",
     occasion: booking.occasion,
     otherOccasion: booking.otherOccasion ?? "",
-    hostName: booking.name ?? null,
+    hostName: getHostName(booking),
     createdAt: booking.createdAt ?? null,
     joinedUsers: booking.joinedUsers ?? [],
     isFull: seatsAvailable <= 0,
@@ -348,7 +351,7 @@ export async function joinPublicTable({ bookingId, userId, seats }) {
     actorId: userId,
     actorName: guestName,
     restaurant: table?.restaurantName,
-    hostName: table?.name,
+    hostName: getHostName(table),
     seats,
   });
 }
@@ -451,7 +454,7 @@ export async function requestToJoinTable({ booking, userId, seats, message }) {
     actorId: userId,
     actorName: guestName,
     restaurant: table?.restaurantName,
-    hostName: table?.name,
+    hostName: getHostName(table),
     seats,
   });
 }

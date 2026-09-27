@@ -1,22 +1,26 @@
 import {
   collection,
+  deleteField,
   doc,
   getDoc,
   runTransaction,
   serverTimestamp,
-  updateDoc,
   writeBatch,
 } from "firebase/firestore";
-import moment from "moment";
 
 import { auth, db } from "@/lib/firebase/config";
-import { BOOKINGS_COLLECTION } from "@/lib/constants/firestore-collections.constants";
+import {
+  BOOKINGS_COLLECTION,
+  BOOKING_CONTACT_DOC_ID,
+  BOOKING_CONTACT_FIELDS,
+  BOOKING_PRIVATE_SUBCOLLECTION,
+} from "@/lib/constants/firestore-collections.constants";
 import { hasTableStarted } from "@/lib/utils/dining-journey.utils";
 import {
   TABLE_STATUS,
   isTableCancelled,
 } from "@/lib/constants/dining-journey.constants";
-import { REPEAT_OCCURRENCES } from "@/lib/constants/social.constants";
+import { getRecurringDates } from "@/lib/utils/recurring-dates.utils";
 import {
   computeSeatState,
   isOpenVisibility,
@@ -24,7 +28,8 @@ import {
 } from "@/lib/utils/table-seats.utils";
 
 /**
- * Every field BookingFormModal's create flow can produce, in one place.
+ * The public booking doc: every field BookingFormModal's create flow can
+ * produce except the host's contact details (see buildBookingContact).
  * Field names deliberately match what firestore.rules,
  * diningJourneyService.js, and communityDiningService.js all expect
  * (userId, isOpenTable, tableVisibility, seatsAvailable, seatsJoined,
@@ -43,7 +48,7 @@ import {
  * that represents the table's full capacity, including the host's own
  * seats, and it's stored as-is for exactly that reason.
  */
-export function buildBookingDocument({ restaurant, form, userId }) {
+export function buildBookingDocument({ restaurant, form, userId, hostName = null }) {
   const totalSeats = Number(form.totalSeats) || 0;
   const yourSeats = Number(form.yourSeats) || 0;
   const isOpenTable = form.tableVisibility !== "private";
@@ -74,10 +79,8 @@ export function buildBookingDocument({ restaurant, form, userId }) {
     occasion: form.occasion,
     otherOccasion: isOtherOccasion ? form.otherOccasion : "",
 
-    name: form.name,
-    phone: form.phone,
-    email: form.email,
-    notes: form.notes ?? "",
+    // Public display name only. Contact details go in the private doc.
+    hostName,
 
     type: form.type ?? "restaurant",
 
@@ -88,32 +91,28 @@ export function buildBookingDocument({ restaurant, form, userId }) {
   };
 }
 
-const REPEAT_STEP = {
-  weekly: { amount: 7, unit: "days" },
-  fortnightly: { amount: 14, unit: "days" },
-  monthly: { amount: 1, unit: "months" },
-};
-
 /**
- * Dates for a recurring table: the first date plus `count - 1` more, one
- * `repeat` step apart ("monthly" keeps the day of month, clamped to the
- * month's last day). A non-repeating booking is just [date].
+ * The host's contact details and notes for one booking, stored at
+ * bookings/{id}/private/contact. Bookings are publicly readable, so these
+ * never go on the booking doc itself; firestore.rules lets only the host
+ * (and admins) read this one.
  */
-export function getRecurringDates(date, repeat, count) {
-  const step = REPEAT_STEP[repeat];
-  if (!step) return [date];
+export function buildBookingContact(form) {
+  return {
+    name: (form.name ?? "").trim(),
+    phone: (form.phone ?? "").trim(),
+    email: (form.email ?? "").trim(),
+    notes: form.notes ?? "",
+  };
+}
 
-  const occurrences = Math.min(
-    Math.max(Number(count) || REPEAT_OCCURRENCES.default, REPEAT_OCCURRENCES.min),
-    REPEAT_OCCURRENCES.max,
-  );
-  const first = moment(date, "YYYY-MM-DD");
-
-  return Array.from({ length: occurrences }, (_, index) =>
-    first
-      .clone()
-      .add(step.amount * index, step.unit)
-      .format("YYYY-MM-DD"),
+function contactRef(bookingId) {
+  return doc(
+    db,
+    BOOKINGS_COLLECTION,
+    bookingId,
+    BOOKING_PRIVATE_SUBCOLLECTION,
+    BOOKING_CONTACT_DOC_ID,
   );
 }
 
@@ -139,7 +138,13 @@ export async function createBooking({ restaurant, form, userId }) {
     throw new Error("Please choose a date and time.");
   }
 
-  const base = buildBookingDocument({ restaurant, form, userId });
+  const base = buildBookingDocument({
+    restaurant,
+    form,
+    userId,
+    hostName: auth.currentUser?.displayName || null,
+  });
+  const contact = buildBookingContact(form);
   const dates = getRecurringDates(form.date, form.repeat, form.repeatCount);
 
   const batch = writeBatch(db);
@@ -159,6 +164,7 @@ export async function createBooking({ restaurant, form, userId }) {
     };
 
     batch.set(ref, payload);
+    batch.set(contactRef(ref.id), contact);
     return { id: ref.id, ...payload };
   });
 
@@ -184,19 +190,15 @@ const EDITABLE_BOOKING_FIELDS = [
   "tableDescription",
   "occasion",
   "otherOccasion",
-  "name",
-  "phone",
-  "email",
-  "notes",
   "type",
 ];
 
-function pickEditableFields(payload) {
-  return EDITABLE_BOOKING_FIELDS.reduce((sanitized, field) => {
-    if (payload[field] !== undefined) {
-      sanitized[field] = payload[field];
+function pickFields(payload, fields) {
+  return fields.reduce((picked, field) => {
+    if (payload?.[field] !== undefined) {
+      picked[field] = payload[field];
     }
-    return sanitized;
+    return picked;
   }, {});
 }
 
@@ -285,12 +287,14 @@ export async function updateBookingDocument(bookingId, updates) {
     throw new Error("Missing booking id to update.");
   }
 
-  const sanitized = pickEditableFields(updates);
+  const sanitized = pickFields(updates, EDITABLE_BOOKING_FIELDS);
+  const contactChanges = pickFields(updates, BOOKING_CONTACT_FIELDS);
   const touchesSettings = TABLE_SETTINGS_FIELDS.some(
     (field) => updates?.[field] !== undefined,
   );
+  const touchesContact = Object.keys(contactChanges).length > 0;
 
-  if (!touchesSettings && Object.keys(sanitized).length === 0) {
+  if (!touchesSettings && !touchesContact && Object.keys(sanitized).length === 0) {
     return { id: bookingId };
   }
 
@@ -303,30 +307,69 @@ export async function updateBookingDocument(bookingId, updates) {
     });
   }
 
-  if (Object.keys(sanitized).length > 0) {
-    await updateDoc(doc(db, BOOKINGS_COLLECTION, bookingId), {
-      ...sanitized,
-      updatedAt: serverTimestamp(),
-    });
+  if (Object.keys(sanitized).length > 0 || touchesContact) {
+    const batch = writeBatch(db);
+    const publicUpdate = { ...sanitized, updatedAt: serverTimestamp() };
+
+    if (touchesContact) {
+      batch.set(contactRef(bookingId), contactChanges, { merge: true });
+      // A booking created before contact details moved out may still carry
+      // them on the public doc; editing them clears the public copy.
+      BOOKING_CONTACT_FIELDS.forEach((field) => {
+        publicUpdate[field] = deleteField();
+      });
+    }
+
+    batch.update(doc(db, BOOKINGS_COLLECTION, bookingId), publicUpdate);
+    await batch.commit();
   }
 
-  return { id: bookingId, ...settingsResult, ...sanitized };
+  return { id: bookingId, ...settingsResult, ...sanitized, ...contactChanges };
 }
 
 /**
- * Full booking doc for the Dining Journey details modal — everything
- * diningJourneyService's list view deliberately leaves out of its `table`
- * projection (tableDescription, occasion, host contact info, joinedUsers)
- * to keep the card list light. Bookings are publicly readable
- * (`allow read: if true`), so this is safe to call for a table the
- * current user only joined, not hosted.
+ * The host's private contact details for a booking, or {} when there are
+ * none (or the caller isn't the host, which firestore.rules denies).
+ * Bookings created before the private doc existed fall back to the
+ * contact fields still on the public doc.
  */
-export async function getBookingDetails(bookingId) {
+export async function getBookingContact(bookingId, legacyBooking = null) {
+  const snapshot = await getDoc(contactRef(bookingId));
+
+  if (snapshot.exists()) {
+    return snapshot.data();
+  }
+
+  return pickFields(legacyBooking, BOOKING_CONTACT_FIELDS);
+}
+
+/**
+ * Full booking doc for the Dining Journey details modal and the table
+ * editor: everything diningJourneyService's list view leaves out of its
+ * `table` projection (tableDescription, occasion, joinedUsers) to keep the
+ * card list light. Bookings are publicly readable, so this works for a
+ * table the current user only joined.
+ *
+ * `includeContact` also loads the host's private contact details. Pass it
+ * only when the current user is the host; anyone else is refused by
+ * firestore.rules.
+ */
+export async function getBookingDetails(bookingId, { includeContact = false } = {}) {
   if (!bookingId) {
     return null;
   }
 
   const snapshot = await getDoc(doc(db, BOOKINGS_COLLECTION, bookingId));
 
-  return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const booking = { id: snapshot.id, ...snapshot.data() };
+
+  if (!includeContact) {
+    return booking;
+  }
+
+  return { ...booking, ...(await getBookingContact(bookingId, booking)) };
 }

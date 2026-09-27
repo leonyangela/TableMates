@@ -4,10 +4,12 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 import SeedRestaurantsButton, {
   BackfillSearchKeywordsButton,
+  MigrateBookingContactsButton,
 } from "./seeds-button.component";
 
 /**
- * Restaurant data tools (seeding, search keywords & categories). Renders
+ * Data tools (seeding, search keywords & categories, the booking contact
+ * migration). Renders
  * nothing unless the signed-in user is an admin (admins/{uid} exists).
  */
 export default function AdminTools() {
@@ -23,12 +25,14 @@ export default function AdminTools() {
         Admin
       </p>
       <p className="mt-2 max-w-xl text-sm text-paper/65">
-        Restaurant data. Seeding overwrites the seeded restaurants; the
-        backfill adds search keywords and rebuilds the category list.
+        Seeding overwrites the seeded restaurants; the backfill adds search
+        keywords and rebuilds the category list; the migration moves
+        contact details off older bookings.
       </p>
       <div className="mt-4 flex flex-wrap items-start gap-3">
         <SeedRestaurantsButton />
         <BackfillSearchKeywordsButton />
+        <MigrateBookingContactsButton />
       </div>
     </section>
   );

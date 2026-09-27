@@ -56,3 +56,13 @@ export function removeGuestActionId(bookingId, guestId) {
 export function seatChangeActionId(bookingId) {
   return `seats:${bookingId}`;
 }
+
+/**
+ * The host's public display name for a booking. `hostName` is the public
+ * field; bookings written before contact details moved to the private
+ * subdocument only have `name`, so it's the fallback until they're
+ * migrated.
+ */
+export function getHostName(booking) {
+  return booking?.hostName || booking?.name || null;
+}

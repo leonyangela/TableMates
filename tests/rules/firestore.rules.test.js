@@ -49,6 +49,42 @@ afterAll(() => env?.cleanup());
 
 beforeEach(() => env.clearFirestore());
 
+describe("booking contact details", () => {
+  beforeEach(async () => {
+    await seed("bookings/b1", booking());
+    await seed("bookings/b1/private/contact", contact);
+  });
+
+  it("keeps the booking itself publicly readable", async () => {
+    await assertSucceeds(getDoc(doc(db(null), "bookings/b1")));
+  });
+
+  it("lets only the host read the contact details", async () => {
+    await assertSucceeds(getDoc(doc(db(HOST), "bookings/b1/private/contact")));
+    await assertFails(getDoc(doc(db(GUEST), "bookings/b1/private/contact")));
+    await assertFails(getDoc(doc(db(null), "bookings/b1/private/contact")));
+  });
+
+  it("refuses a new booking that carries contact details", async () => {
+    await assertFails(setDoc(doc(db(HOST), "bookings/b2"), booking({ phone: "0400 000 000" })));
+  });
+
+  it("allows creating a booking and its contact doc in one batch", async () => {
+    const batch = writeBatch(db(HOST));
+    batch.set(doc(db(HOST), "bookings/b3"), booking());
+    batch.set(doc(db(HOST), "bookings/b3/private/contact"), contact);
+    await assertSucceeds(batch.commit());
+  });
+
+  it("refuses a contact doc on someone else's booking", async () => {
+    await assertFails(setDoc(doc(db(GUEST), "bookings/b1/private/contact"), contact));
+  });
+
+  it("refuses a host update that puts contact details back on the booking", async () => {
+    await assertFails(updateDoc(doc(db(HOST), "bookings/b1"), { email: "hana@example.com" }));
+  });
+});
+
 describe("joining a public table", () => {
   beforeEach(() => seed("bookings/b1", booking()));
 

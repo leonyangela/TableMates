@@ -26,7 +26,7 @@ import {
   REPEAT_OCCURRENCES,
   REPEAT_OPTIONS,
 } from "@/lib/constants/social.constants";
-import { getRecurringDates } from "@/services/bookingService";
+import { getRecurringDates } from "@/lib/utils/recurring-dates.utils";
 
 const recurringDateFormat = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
