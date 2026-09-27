@@ -149,14 +149,6 @@ export default function FeedbackModal({
     };
   }, [entry.bookingId]);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   const people = booking
     ? [
         { uid: booking.userId, name: getHostName(booking) || "Host", isHost: true },

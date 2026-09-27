@@ -107,15 +107,6 @@ export default function DiningJourneyDetailsModal({
     };
   }, [entry.bookingId, isHost]);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose?.();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   // `booking` is this modal's own fetched copy, so drop the guest from it
   // locally once the removal succeeds rather than re-fetching.
   const handleRemoveGuest = async (guestId) => {
